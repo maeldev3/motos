@@ -1,0 +1,32 @@
+# Fichier "Blueprint" Render : déploiement automatique du service + base Neon externe
+services:
+  - type: web
+    name: moto-manager-api
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /up
+    envVars:
+      - key: APP_NAME
+        value: "Moto Manager API"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_TIMEZONE
+        value: "Indian/Antananarivo"
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: DB_CONNECTION
+        value: pgsql
+      # Coller ici l'URL de connexion fournie par Neon (Dashboard Neon > Connection string)
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_SSLMODE
+        value: require
+      - key: SANCTUM_STATEFUL_DOMAINS
+        value: ""
+      - key: SESSION_DRIVER
+        value: cookie

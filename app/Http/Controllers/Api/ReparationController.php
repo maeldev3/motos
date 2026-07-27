@@ -1,0 +1,88 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Reparation;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+
+class ReparationController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = Reparation::with('moto');
+
+        if ($request->filled('moto_id')) {
+            $query->where('moto_id', $request->moto_id);
+        }
+        if ($request->filled('type_reparation')) {
+            $query->where('type_reparation', $request->type_reparation);
+        }
+
+        return $this->ok($query->latest('date_reparation')->paginate($request->get('per_page', 20)));
+    }
+
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'moto_id' => 'required|exists:motos,id',
+            'date_reparation' => 'required|date',
+            'type_reparation' => 'required|in:vidange,changement_pneus,chaine,batterie,embrayage,moteur,carburateur,freins,suspension,peinture,accident,revision_complete,autres',
+            'description' => 'nullable|string',
+            'garage' => 'nullable|string',
+            'mecanicien' => 'nullable|string',
+            'kilometrage' => 'nullable|integer|min:0',
+            'pieces_remplacees' => 'nullable|string',
+            'montant' => 'required|numeric|min:0',
+            'photo_facture' => 'nullable|image|max:4096',
+            'observations' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->error('Validation échouée', 422, $validator->errors());
+        }
+
+        $data = $validator->validated();
+
+        if ($request->hasFile('photo_facture')) {
+            $data['photo_facture'] = $request->file('photo_facture')->store('factures/reparations', 'public');
+        }
+
+        $reparation = Reparation::create($data);
+
+        // Passer automatiquement la moto en "en_reparation"
+        $reparation->moto->update(['statut' => 'en_reparation']);
+
+        return $this->created($reparation->load('moto'));
+    }
+
+    public function show(Reparation $reparation)
+    {
+        return $this->ok($reparation->load('moto'));
+    }
+
+    public function update(Request $request, Reparation $reparation)
+    {
+        $data = $request->validate([
+            'description' => 'nullable|string',
+            'garage' => 'nullable|string',
+            'mecanicien' => 'nullable|string',
+            'kilometrage' => 'nullable|integer|min:0',
+            'pieces_remplacees' => 'nullable|string',
+            'montant' => 'sometimes|required|numeric|min:0',
+            'observations' => 'nullable|string',
+        ]);
+
+        $reparation->update($data);
+
+        return $this->ok($reparation, 'Réparation mise à jour');
+    }
+
+    public function destroy(Reparation $reparation)
+    {
+        $reparation->delete();
+
+        return $this->ok(null, 'Réparation supprimée');
+    }
+}

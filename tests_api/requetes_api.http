@@ -1,0 +1,100 @@
+### Fichier de requêtes de test (compatible extension "REST Client" de VSCode, ou Postman via import)
+@baseUrl = http://localhost:8000/api
+@token = COLLEZ_ICI_LE_TOKEN_RECU_APRES_LOGIN
+
+### 1. Connexion
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@moto-api.com",
+  "password": "password123"
+}
+
+### 2. Utilisateur connecté
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+### 3. Créer une moto
+POST {{baseUrl}}/motos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "immatriculation": "1234 TBA",
+  "marque": "Yamaha",
+  "modele": "YBR 125",
+  "type_vehicule": "moto"
+}
+
+### 4. Créer une voiture (versement journalier 100000 Ar)
+POST {{baseUrl}}/motos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "immatriculation": "5678 TBB",
+  "marque": "Toyota",
+  "modele": "Corolla",
+  "type_vehicule": "voiture"
+}
+
+### 5. Lister les motos
+GET {{baseUrl}}/motos
+Authorization: Bearer {{token}}
+
+### 6. Créer un conducteur
+POST {{baseUrl}}/conducteurs
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nom": "Rakoto",
+  "prenom": "Jean",
+  "telephone": "0341234567",
+  "cin": "101012345678"
+}
+
+### 7. Affecter une moto à un conducteur
+POST {{baseUrl}}/conducteurs/1/affecter-moto
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "moto_id": 1,
+  "motif_changement": "Première affectation"
+}
+
+### 8. Enregistrer un versement
+POST {{baseUrl}}/versements
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "moto_id": 1,
+  "conducteur_id": 1,
+  "date_versement": "2026-07-27",
+  "periodicite": "journalier",
+  "montant_attendu": 20000,
+  "montant_verse": 20000
+}
+
+### 9. Enregistrer une dépense
+POST {{baseUrl}}/depenses
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "moto_id": 1,
+  "date_depense": "2026-07-27",
+  "categorie": "carburant",
+  "montant": 15000
+}
+
+### 10. Tableau de bord
+GET {{baseUrl}}/dashboard
+Authorization: Bearer {{token}}
+
+### 11. Bénéfices d'une moto
+GET {{baseUrl}}/motos/1/finances
+Authorization: Bearer {{token}}
