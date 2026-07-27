@@ -28,7 +28,6 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 
 # Étape 1 : installer les dépendances SANS lancer les scripts artisan
-# (artisan n'existe pas encore à ce stade)
 COPY composer.json composer.lock ./
 RUN composer install \
     --no-dev \
@@ -40,11 +39,12 @@ RUN composer install \
 # Étape 2 : copier le reste du projet (artisan y compris)
 COPY . .
 
-# Étape 3 : relancer l'autoload + les scripts maintenant qu'artisan existe
+# Étape 3 : rendre storage/bootstrap-cache writable AVANT de lancer artisan
+RUN chmod -R 775 storage bootstrap/cache
+
+# Étape 4 : relancer l'autoload + les scripts maintenant qu'artisan existe et que le dossier est writable
 RUN composer dump-autoload --optimize --no-dev \
     && php artisan package:discover --ansi
-
-RUN chmod -R 775 storage bootstrap/cache
 
 EXPOSE 10000
 
