@@ -20,7 +20,7 @@ Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
 });
-
+Route::get('affectations', [AffectationController::class, 'index']);
 // ---------------------------------------------------------------------
 // Routes protégées (Sanctum)
 // ---------------------------------------------------------------------
@@ -45,7 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('conducteurs/{conducteur}/historique-motos', [ConducteurController::class, 'historiqueMotos']);
 
     // Affectations (historique global)
-    Route::get('affectations', [AffectationController::class, 'index']);
+    
     Route::get('affectations/{affectation}', [AffectationController::class, 'show']);
 
     // Versements
