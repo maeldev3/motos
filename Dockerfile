@@ -40,7 +40,13 @@ RUN composer install \
 COPY . .
 
 # Étape 3 : rendre storage/bootstrap-cache writable AVANT de lancer artisan
-RUN chmod -R 775 storage bootstrap/cache
+# Étape 3 : s'assurer que les dossiers existent (même si absents du repo) et sont writable
+RUN mkdir -p bootstrap/cache \
+    storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
+    && chmod -R 775 storage bootstrap/cache
 
 # Étape 4 : relancer l'autoload + les scripts maintenant qu'artisan existe et que le dossier est writable
 RUN composer dump-autoload --optimize --no-dev \
