@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Affectation;
 use App\Models\Conducteur;
+use App\Models\Versement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -162,5 +163,40 @@ class ConducteurController extends Controller
     public function historiqueMotos(Conducteur $conducteur)
     {
         return $this->ok($conducteur->affectations()->with('moto')->latest('date_debut')->get());
+    }
+
+    public function versementInfo(Conducteur $conducteur)
+    {
+        $conducteur->load('moto');
+
+        if (!$conducteur->moto) {
+            return $this->error(
+                'Aucune moto affectée.',
+                422
+            );
+        }
+
+        $moto = $conducteur->moto;
+
+        $dernier = Versement::where(
+            'conducteur_id',
+            $conducteur->id
+        )
+        ->latest('date_versement')
+        ->first();
+
+        return $this->ok([
+
+            'conducteur'=>$conducteur,
+
+            'moto'=>$moto,
+
+            'periodicite'=>'journalier',
+
+            'montant_attendu'=>$moto->montant_versement_mensuel,
+
+            'dernier_versement'=>$dernier
+
+        ]);
     }
 }

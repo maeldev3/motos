@@ -43,6 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('conducteurs/{conducteur}/reactiver', [ConducteurController::class, 'reactiver']);
     Route::post('conducteurs/{conducteur}/affecter-moto', [ConducteurController::class, 'affecterMoto']);
     Route::get('conducteurs/{conducteur}/historique-motos', [ConducteurController::class, 'historiqueMotos']);
+    Route::get('conducteurs/{conducteur}/versement',[ConducteurController::class,'versementInfo']);
 
     // Affectations (historique global)
     
