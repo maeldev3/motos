@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->enum('categorie', [
                 'reparation', 'entretien', 'assurance', 'carburant', 'huile_moteur',
                 'pneus', 'batterie', 'lavage', 'parking', 'carte_grise', 'taxes',
-                'amendes', 'accessoires', 'divers',
+                'amendes', 'accessoires', 'divers','renfort_cadre'
             ]);
             $table->decimal('montant', 14, 2);
             $table->string('justificatif')->nullable();

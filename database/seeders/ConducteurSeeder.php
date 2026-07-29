@@ -2,26 +2,22 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Conducteur;
 
 class ConducteurSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
+        // Seulement 3 conducteurs actifs pour les 3 motos "en_circulation", + 1 en réparation
         $conducteurs = [
-            ['nom' => 'Andriamampianina', 'prenom' => 'Jean', 'sexe' => 'homme', 'telephone' => '0341234501', 'statut' => 'actif'],
-            ['nom' => 'Razafindrakoto', 'prenom' => 'Paul', 'sexe' => 'homme', 'telephone' => '0341234502', 'statut' => 'actif'],
-            ['nom' => 'Rasoamanana', 'prenom' => 'Marie', 'sexe' => 'femme', 'telephone' => '0341234503', 'statut' => 'actif'],
-            ['nom' => 'Rakotondrabe', 'prenom' => 'Eric', 'sexe' => 'homme', 'telephone' => '0341234504', 'statut' => 'actif'],
-            ['nom' => 'Ravaomanana', 'prenom' => 'Nirina', 'sexe' => 'femme', 'telephone' => '0341234505', 'statut' => 'actif'],
-            ['nom' => 'Rabearison', 'prenom' => 'Tojo', 'sexe' => 'homme', 'telephone' => '0341234506', 'statut' => 'suspendu'],
-            ['nom' => 'Randrianasolo', 'prenom' => 'Hery', 'sexe' => 'homme', 'telephone' => '0341234507', 'statut' => 'actif'],
-            ['nom' => 'Rakotoarisoa', 'prenom' => 'Voahangy', 'sexe' => 'femme', 'telephone' => '0341234508', 'statut' => 'inactif'],
+            ['nom' => 'Njaka', 'prenom' => 'Jean', 'sexe' => 'homme', 'telephone' => '0341234501', 'statut' => 'actif'],
+            ['nom' => 'Jese', 'prenom' => 'Paul', 'sexe' => 'homme', 'telephone' => '0341234502', 'statut' => 'actif'],
+            ['nom' => 'Fihorenana', 'prenom' => 'Marie', 'sexe' => 'femme', 'telephone' => '0341234503', 'statut' => 'actif'],
+            
+            // Inactifs / Suspendus pour les motos indisponibles
+            ['nom' => 'Manitra', 'prenom' => 'Eric', 'sexe' => 'homme', 'telephone' => '0341234504', 'statut' => 'suspendu'],
+            ['nom' => 'Ravaomanana', 'prenom' => 'Nirina', 'sexe' => 'femme', 'telephone' => '0341234505', 'statut' => 'inactif'],
         ];
 
         foreach ($conducteurs as $i => $data) {
@@ -33,7 +29,6 @@ class ConducteurSeeder extends Seeder
                 'date_embauche' => now()->subMonths(rand(2, 24)),
                 'contact_urgence_nom' => 'Famille ' . $data['nom'],
                 'contact_urgence_telephone' => '033' . rand(1000000, 9999999),
-                // moto_id sera mis à jour par AffectationSeeder pour rester cohérent
             ]));
         }
     }

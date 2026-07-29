@@ -78,25 +78,25 @@ class DashboardController extends Controller
         $dates = $this->getDateRange(request('period', 'year'), request('start_date'), request('end_date'));
         $start = $dates['start'];
         $end = $dates['end'];
-
+    
         $cacheKey = 'dashboard_graphs_' . md5($start . $end);
         
         $data = Cache::remember($cacheKey, 600, function () use ($start, $end) {
-            // 1. Revenus mensuels
-            $revenusMensuels = Versement::selectRaw('EXTRACT(YEAR_MONTH FROM date_versement) as periode, SUM(montant_verse) as total')
+            // 1. Revenus mensuels (CORRIGÉ POUR POSTGRESQL)
+            $revenusMensuels = Versement::selectRaw("TO_CHAR(date_versement, 'YYYY-MM') as periode, SUM(montant_verse) as total")
                 ->whereBetween('date_versement', [$start, $end])
                 ->groupBy('periode')->orderBy('periode')->get();
-
-            // 2. Dépenses mensuelles
-            $depensesMensuelles = Depense::selectRaw('EXTRACT(YEAR_MONTH FROM date_depense) as periode, SUM(montant) as total')
+    
+            // 2. Dépenses mensuelles (CORRIGÉ POUR POSTGRESQL)
+            $depensesMensuelles = Depense::selectRaw("TO_CHAR(date_depense, 'YYYY-MM') as periode, SUM(montant) as total")
                 ->whereBetween('date_depense', [$start, $end])
                 ->groupBy('periode')->orderBy('periode')->get();
-
+    
             // 3. Répartition des dépenses
             $repartitionDepenses = Depense::selectRaw('categorie, SUM(montant) as total')
                 ->whereBetween('date_depense', [$start, $end])
                 ->groupBy('categorie')->orderByDesc('total')->get();
-
+    
             // 4. Motos les plus rentables
             $motosRentables = Moto::with(['versements' => function($query) use ($start, $end) {
                     $query->whereBetween('date_versement', [$start, $end]);
@@ -117,7 +117,7 @@ class DashboardController extends Controller
                 ->sortByDesc('benefice')
                 ->values()
                 ->take(10);
-
+    
             // 5. Évolution des bénéfices
             $evolutionBenefices = $revenusMensuels->map(function ($revItem) use ($depensesMensuelles) {
                 $periode = $revItem->periode;
@@ -131,7 +131,7 @@ class DashboardController extends Controller
                     'depenses' => $depItem->total ?? 0,
                 ];
             })->values();
-
+    
             return [
                 'revenus_mensuels' => $revenusMensuels,
                 'depenses_mensuelles' => $depensesMensuelles,
@@ -140,8 +140,7 @@ class DashboardController extends Controller
                 'motos_les_plus_rentables' => $motosRentables,
             ];
         });
-
-        // CORRECTION ICI : Appel de la méthode renommée
+    
         return $this->successResponse($data);
     }
 

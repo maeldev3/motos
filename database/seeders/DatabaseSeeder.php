@@ -11,7 +11,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         User::firstOrCreate(
-            ['email' => 'admin@moto-api.com'],
+            ['email' => 'ismael@moto.com'],
             [
                 'name' => 'Administrateur',
                 'password' => Hash::make('password123'),

@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->enum('type_reparation', [
                 'vidange', 'changement_pneus', 'chaine', 'batterie', 'embrayage',
                 'moteur', 'carburateur', 'freins', 'suspension', 'peinture',
-                'accident', 'revision_complete', 'autres',
+                'accident', 'revision_complete', 'autres','renfort_cadre'
             ]);
             $table->text('description')->nullable();
             $table->string('garage')->nullable();
