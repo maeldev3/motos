@@ -38,6 +38,7 @@ class Moto extends Model
         return $this->hasMany(Affectation::class);
     }
 
+    // Utilisé pour l'Eager Loading
     public function affectationActive()
     {
         return $this->hasOne(Affectation::class)->where('active', true);

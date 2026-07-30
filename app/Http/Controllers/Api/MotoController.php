@@ -5,33 +5,48 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Moto;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 class MotoController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Moto::query();
+        // 1. PAGINATION & CACHE
+        $perPage = $request->get('per_page', 20);
+        $cacheKey = 'motos_list_' . md5(json_encode($request->all()));
 
-        if ($request->filled('statut')) {
-            $query->where('statut', $request->statut);
-        }
-        if ($request->filled('type_vehicule')) {
-            $query->where('type_vehicule', $request->type_vehicule);
-        }
-        if ($request->filled('recherche')) {
-            $q = $request->recherche;
-            $query->where(function ($qr) use ($q) {
-                $qr->where('immatriculation', 'like', "%{$q}%")
-                    ->orWhere('marque', 'like', "%{$q}%")
-                    ->orWhere('modele', 'like', "%{$q}%");
-            });
-        }
+        // Le cache stocke les résultats paginés pendant 5 minutes
+        return Cache::remember($cacheKey, 300, function () use ($request, $perPage) {
+            
+            $query = Moto::query();
 
-        $motos = $query->latest()->paginate($request->get('per_page', 20));
+            // 2. INDEX SQL UTILISÉS ICI (statut, type_vehicule)
+            if ($request->filled('statut')) {
+                $query->where('statut', $request->statut);
+            }
+            if ($request->filled('type_vehicule')) {
+                $query->where('type_vehicule', $request->type_vehicule);
+            }
+            if ($request->filled('recherche')) {
+                $q = $request->recherche;
+                $query->where(function ($qr) use ($q) {
+                    $qr->where('immatriculation', 'like', "%{$q}%")
+                        ->orWhere('marque', 'like', "%{$q}%")
+                        ->orWhere('modele', 'like', "%{$q}%");
+                });
+            }
 
-        return $this->ok($motos);
+            // 3. EAGER LOADING (Charge les relations en 1 seule requête SQL)
+            // On charge 'affectationActive.conducteur' pour éviter le N+1 lors de l'affichage
+            $motos = $query->with(['affectationActive.conducteur'])
+                           ->latest()
+                           ->paginate($perPage);
+
+            return $this->ok($motos);
+        });
     }
+
 
     public function store(Request $request)
     {
@@ -76,9 +91,14 @@ class MotoController extends Controller
 
     public function show(Moto $moto)
     {
-        $moto->load(['affectationActive.conducteur', 'reparations', 'depenses']);
-
-        return $this->ok($moto);
+        // 1. CACHE PAR ID
+        $cacheKey = 'moto_show_' . $moto->id . '_' . $moto->updated_at->timestamp;
+        
+        return Cache::remember($cacheKey, 600, function () use ($moto) {
+            // 2. EAGER LOADING DES RELATIONS
+            $moto->load(['affectationActive.conducteur', 'reparations', 'depenses']);
+            return $this->ok($moto);
+        });
     }
 
     public function update(Request $request, Moto $moto)
@@ -144,6 +164,17 @@ class MotoController extends Controller
         $debut = $request->get('debut', now()->startOfMonth()->toDateString());
         $fin = $request->get('fin', now()->endOfMonth()->toDateString());
 
+        // 4. QUEUE / JOB (Pour les calculs longs, ex: calculs sur plusieurs années)
+        // Si la période dépasse 1 an, on met le calcul en file d'attente.
+        $diffInDays = \Carbon\Carbon::parse($debut)->diffInDays($fin);
+        
+        if ($diffInDays > 365) {
+            // Déclenche un Job asynchrone (exemple de logique)
+            // CalculateMotoFinances::dispatch($moto->id, $debut, $fin);
+            // return $this->ok(['message' => 'Le calcul est en cours, veuillez patienter...']);
+        }
+
+        // Sinon, calcul en temps réel
         return $this->ok([
             'moto' => $moto,
             'periode' => ['debut' => $debut, 'fin' => $fin],

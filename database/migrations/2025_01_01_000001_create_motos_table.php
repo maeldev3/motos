@@ -41,6 +41,14 @@ return new class extends Migration {
             $table->boolean('actif')->default(true);
             $table->timestamps();
             $table->softDeletes();
+
+                // =====================================================
+            // CRÉATION DES INDEX SQL POUR ACCÉLÉRER LES RECHERCHES
+            // =====================================================
+            $table->index('statut'); // Accélère le filtrage par statut
+            $table->index('type_vehicule'); // Accélère le filtrage par moto/voiture
+            $table->index('actif'); // Accélère les recherches motos actives
+            $table->index(['marque', 'modele']); // Accélère la recherche par marque/modèle
         });
     }
 
