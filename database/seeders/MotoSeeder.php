@@ -17,17 +17,18 @@ class MotoSeeder extends Seeder
             // ==========================================
             // 3 MOTOS EN CIRCULATION (pour les 3 conducteurs)
             // ==========================================
-            ['immatriculation' => '1234 TBA', 'marque' => 'PETER 7', 'modele' => '150GY', 'couleur' => 'Rouge',   'type_vehicule' => 'moto', 'statut' => 'en_circulation'],
-            ['immatriculation' => '1235 TBA', 'marque' => 'PETER 7',  'modele' => '150GY', 'couleur' => 'Noir',    'type_vehicule' => 'moto', 'statut' => 'en_circulation'],
-            ['immatriculation' => '1236 TBA', 'marque' => 'PETER 7', 'modele' => '150GY 200cc',   'couleur' => 'Noir',    'type_vehicule' => 'moto', 'statut' => 'en_circulation'],
+            ['immatriculation' => '0001 AAA', 'marque' => 'PETER 7', 'modele' => '150GY', 'couleur' => 'Rouge',   'type_vehicule' => 'moto', 'statut' => 'en_circulation'],
+            ['immatriculation' => '0002 BBA', 'marque' => 'PETER 7',  'modele' => '150GY', 'couleur' => 'Noir',    'type_vehicule' => 'moto', 'statut' => 'en_circulation'],
+            ['immatriculation' => '0003 CCC', 'marque' => 'PETER 7', 'modele' => '150GY',   'couleur' => 'Noir',    'type_vehicule' => 'moto', 'statut' => 'en_circulation'],
+            ['immatriculation' => '0004 DDD', 'marque' => 'PETER 7', 'modele' => '150GY',   'couleur' => 'bleu',    'type_vehicule' => 'moto', 'statut' => 'en_circulation'],
 
             // ==========================================
             // 4 AUTRES MOTOS (Indisponibles ou en attente)
             // ==========================================
             ['immatriculation' => '1237 TBA', 'marque' => 'Yamaha', 'modele' => 'Sirius', 'couleur' => 'Blanc',    'type_vehicule' => 'moto', 'statut' => 'en_reparation'], // En panne
-            ['immatriculation' => '1238 TBA', 'marque' => 'TVS',    'modele' => 'Star City', 'couleur' => 'Rouge',   'type_vehicule' => 'moto', 'statut' => 'disponible'],   // Pas de conducteur
-            ['immatriculation' => '1239 TBA', 'marque' => 'Honda',  'modele' => 'Wave 125', 'couleur' => 'Gris',    'type_vehicule' => 'moto', 'statut' => 'en_entretien'],  // Entretien
-            ['immatriculation' => '1240 TBA', 'marque' => 'Bajaj',  'modele' => 'Boxer',    'couleur' => 'Noir',    'type_vehicule' => 'moto', 'statut' => 'accidentee'],   // Accidentée
+            // ['immatriculation' => '1238 TBA', 'marque' => 'TVS',    'modele' => 'Star City', 'couleur' => 'Rouge',   'type_vehicule' => 'moto', 'statut' => 'disponible'],   // Pas de conducteur
+            // ['immatriculation' => '1239 TBA', 'marque' => 'Honda',  'modele' => 'Wave 125', 'couleur' => 'Gris',    'type_vehicule' => 'moto', 'statut' => 'en_entretien'],  // Entretien
+            // ['immatriculation' => '1240 TBA', 'marque' => 'Bajaj',  'modele' => 'Boxer',    'couleur' => 'Noir',    'type_vehicule' => 'moto', 'statut' => 'accidentee'],   // Accidentée
 
             // ==========================================
             // VOITURES (Optionnel, pour vos stats globales)

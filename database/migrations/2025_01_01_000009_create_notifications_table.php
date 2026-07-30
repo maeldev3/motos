@@ -17,6 +17,56 @@ return new class extends Migration {
             $table->string('message');
             $table->boolean('lue')->default(false);
             $table->timestamps();
+
+             /*
+                |--------------------------------------------------------------------------
+                | INDEX SIMPLES
+                |--------------------------------------------------------------------------
+                */
+
+                $table->index('type');
+
+                $table->index('lue');
+
+                $table->index('created_at');
+
+                /*
+                |--------------------------------------------------------------------------
+                | INDEX COMPOSITES
+                |--------------------------------------------------------------------------
+                */
+
+                // Notifications d'un objet (Moto ou Conducteur)
+                $table->index([
+                    'alertable_type',
+                    'alertable_id'
+                ]);
+
+                // Notifications non lues
+                $table->index([
+                    'lue',
+                    'created_at'
+                ]);
+
+                // Recherche par type
+                $table->index([
+                    'type',
+                    'created_at'
+                ]);
+
+                // Dashboard
+                $table->index([
+                    'alertable_type',
+                    'alertable_id',
+                    'lue'
+                ]);
+
+                // Historique
+                $table->index([
+                    'alertable_type',
+                    'alertable_id',
+                    'created_at'
+                ]);
         });
     }
 

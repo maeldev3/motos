@@ -12,9 +12,25 @@ return new class extends Migration {
             $table->foreignId('moto_id')->constrained('motos')->cascadeOnDelete();
             $table->date('date_reparation');
             $table->enum('type_reparation', [
-                'vidange', 'changement_pneus', 'chaine', 'batterie', 'embrayage',
-                'moteur', 'carburateur', 'freins', 'suspension', 'peinture',
-                'accident', 'revision_complete', 'autres','renfort_cadre'
+                'vidange',
+                'changement_pneus',
+                'chaine',
+                'batterie',
+                'embrayage',
+                'moteur',
+                'carburateur',
+                'freins',
+                'suspension',
+                'peinture',
+                'accident',
+                'revision_complete',
+                'renfort_cadre',
+                'electricite',
+                'echappement',
+                'amortisseur',
+                'roulement',
+                'pneumatique',
+                'autres'
             ]);
             $table->text('description')->nullable();
             $table->string('garage')->nullable();
@@ -25,6 +41,12 @@ return new class extends Migration {
             $table->string('photo_facture')->nullable();
             $table->text('observations')->nullable();
             $table->timestamps();
+
+            $table->index('moto_id');
+            $table->index('date_reparation');
+            $table->index('type_reparation');
+
+        
         });
     }
 

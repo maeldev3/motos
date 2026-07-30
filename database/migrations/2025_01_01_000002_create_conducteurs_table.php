@@ -29,6 +29,53 @@ return new class extends Migration {
 
             $table->timestamps();
             $table->softDeletes();
+             /*
+            |--------------------------------------------------------------------------
+            | INDEX SQL
+            |--------------------------------------------------------------------------
+            */
+
+            // Jointure Moto
+            $table->index('moto_id');
+
+            // Recherche par statut
+            $table->index('statut');
+
+            // Recherche par sexe
+            $table->index('sexe');
+
+            // Recherche par date d'embauche
+            $table->index('date_embauche');
+
+            // Tri par création
+            $table->index('created_at');
+
+            // Soft Delete
+            $table->index('deleted_at');
+
+            /*
+            |--------------------------------------------------------------------------
+            | INDEX COMPOSITES
+            |--------------------------------------------------------------------------
+            */
+
+            // Conducteurs actifs d'une moto
+            $table->index([
+                'moto_id',
+                'statut'
+            ]);
+
+            // Liste des conducteurs actifs
+            $table->index([
+                'statut',
+                'created_at'
+            ]);
+
+            // Conducteurs recrutés par période
+            $table->index([
+                'date_embauche',
+                'statut'
+            ]);
         });
     }
 

@@ -21,7 +21,50 @@ return new class extends Migration {
             $table->text('commentaire')->nullable();
             $table->timestamps();
 
-            $table->index(['moto_id', 'date_depense']);
+            /*
+                |--------------------------------------------------------------------------
+                | INDEX SIMPLES
+                |--------------------------------------------------------------------------
+                */
+
+                $table->index('moto_id');
+
+                $table->index('date_depense');
+
+                $table->index('categorie');
+
+                $table->index('created_at');
+
+                /*
+                |--------------------------------------------------------------------------
+                | INDEX COMPOSITES
+                |--------------------------------------------------------------------------
+                */
+
+                // Dépenses d'une moto
+                $table->index([
+                    'moto_id',
+                    'date_depense'
+                ]);
+
+                // Dépenses par catégorie
+                $table->index([
+                    'categorie',
+                    'date_depense'
+                ]);
+
+                // Dépenses d'une moto par catégorie
+                $table->index([
+                    'moto_id',
+                    'categorie',
+                    'date_depense'
+                ]);
+
+                // Dashboard mensuel
+                $table->index([
+                    'date_depense',
+                    'categorie'
+                ]);
         });
     }
 

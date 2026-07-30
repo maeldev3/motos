@@ -11,13 +11,13 @@ class ConducteurSeeder extends Seeder
     {
         // Seulement 3 conducteurs actifs pour les 3 motos "en_circulation", + 1 en réparation
         $conducteurs = [
-            ['nom' => 'Njaka', 'prenom' => 'Jean', 'sexe' => 'homme', 'telephone' => '0341234501', 'statut' => 'actif'],
-            ['nom' => 'Jese', 'prenom' => 'Paul', 'sexe' => 'homme', 'telephone' => '0341234502', 'statut' => 'actif'],
+            ['nom' => 'Njaka', 'prenom' => 'Beau frere', 'sexe' => 'homme', 'telephone' => '0341234501', 'statut' => 'actif'],
+            ['nom' => 'Jese', 'prenom' => 'Nekena', 'sexe' => 'homme', 'telephone' => '0341234502', 'statut' => 'actif'],
             ['nom' => 'Fihorenana', 'prenom' => 'Marie', 'sexe' => 'femme', 'telephone' => '0341234503', 'statut' => 'actif'],
             
             // Inactifs / Suspendus pour les motos indisponibles
-            ['nom' => 'Manitra', 'prenom' => 'Eric', 'sexe' => 'homme', 'telephone' => '0341234504', 'statut' => 'suspendu'],
-            ['nom' => 'Ravaomanana', 'prenom' => 'Nirina', 'sexe' => 'femme', 'telephone' => '0341234505', 'statut' => 'inactif'],
+            ['nom' => 'Manitra', 'prenom' => 'Zandrilah', 'sexe' => 'homme', 'telephone' => '0341234504', 'statut' => 'suspendu'],
+            ['nom' => 'Ravaomanana', 'prenom' => 'Ravaomanana', 'sexe' => 'femme', 'telephone' => '0341234505', 'statut' => 'inactif'],
         ];
 
         foreach ($conducteurs as $i => $data) {

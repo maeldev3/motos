@@ -45,10 +45,78 @@ return new class extends Migration {
                 // =====================================================
             // CRÉATION DES INDEX SQL POUR ACCÉLÉRER LES RECHERCHES
             // =====================================================
-            $table->index('statut'); // Accélère le filtrage par statut
-            $table->index('type_vehicule'); // Accélère le filtrage par moto/voiture
-            $table->index('actif'); // Accélère les recherches motos actives
-            $table->index(['marque', 'modele']); // Accélère la recherche par marque/modèle
+            /*
+    |--------------------------------------------------------------------------
+    | INDEX SIMPLES
+    |--------------------------------------------------------------------------
+    */
+
+    $table->index('marque');
+
+    $table->index('modele');
+
+    $table->index('statut');
+
+    $table->index('type_vehicule');
+
+    $table->index('actif');
+
+    $table->index('annee_fabrication');
+
+    $table->index('date_achat');
+
+    $table->index('created_at');
+
+    $table->index('deleted_at');
+
+            /*
+            |--------------------------------------------------------------------------
+            | INDEX COMPOSITES
+            |--------------------------------------------------------------------------
+            */
+
+            // Recherche marque + modèle
+            $table->index([
+                'marque',
+                'modele'
+            ]);
+
+            // Dashboard
+            $table->index([
+                'type_vehicule',
+                'statut'
+            ]);
+
+            // Véhicules actifs
+            $table->index([
+                'actif',
+                'statut'
+            ]);
+
+            // Recherche complète
+            $table->index([
+                'type_vehicule',
+                'statut',
+                'actif'
+            ]);
+
+            // Achat par période
+            $table->index([
+                'date_achat',
+                'type_vehicule'
+            ]);
+
+            // Année de fabrication
+            $table->index([
+                'annee_fabrication',
+                'marque'
+            ]);
+
+            // Liste principale
+            $table->index([
+                'statut',
+                'created_at'
+            ]);
         });
     }
 

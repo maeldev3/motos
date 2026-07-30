@@ -14,17 +14,17 @@ class DatabaseSeeder extends Seeder
             ['email' => 'ismael@moto.com'],
             [
                 'name' => 'Administrateur',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('password'),
                 'role' => 'administrateur',
                 'actif' => true,
             ]
         );
 
         User::firstOrCreate(
-            ['email' => 'gestionnaire@moto-api.com'],
+            ['email' => 'mael@gmail.com'],
             [
                 'name' => 'Gestionnaire',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('password'),
                 'role' => 'gestionnaire',
                 'actif' => true,
             ]

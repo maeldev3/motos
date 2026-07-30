@@ -17,6 +17,57 @@ return new class extends Migration {
             $table->decimal('retenue', 14, 2)->default(0);
             $table->text('motif')->nullable();
             $table->timestamps();
+              /*
+                |--------------------------------------------------------------------------
+                | INDEX SQL
+                |--------------------------------------------------------------------------
+                */
+
+                // Recherche par conducteur
+                $table->index('conducteur_id');
+
+                // Filtre par type
+                $table->index('type');
+
+                // Recherche par date de début
+                $table->index('date_debut');
+
+                // Recherche par date de fin
+                $table->index('date_fin');
+
+                // Tri chronologique
+                $table->index('created_at');
+
+                /*
+                |--------------------------------------------------------------------------
+                | INDEX COMPOSITES
+                |--------------------------------------------------------------------------
+                */
+
+                // Historique d'un conducteur
+                $table->index([
+                    'conducteur_id',
+                    'date_debut'
+                ]);
+
+                // Historique sur une période
+                $table->index([
+                    'conducteur_id',
+                    'date_debut',
+                    'date_fin'
+                ]);
+
+                // Statistiques par type
+                $table->index([
+                    'type',
+                    'date_debut'
+                ]);
+
+                // Dashboard mensuel
+                $table->index([
+                    'date_debut',
+                    'date_fin'
+                ]);
         });
     }
 
