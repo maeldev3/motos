@@ -24,10 +24,6 @@ class MotoController extends Controller
                 'immatriculation',
                 'marque',
                 'modele',
-                'photo',
-                'statut',
-                'type_vehicule',
-                'actif'
             ]);
 
             // 2. INDEX SQL UTILISÉS ICI (statut, type_vehicule)
