@@ -28,7 +28,7 @@ class ReparationSeeder extends Seeder
             Reparation::create([
                 'moto_id' => $motoFihorenana->id,
                 'date_reparation' => Carbon::now()->subDays(rand(3, 10)),
-                'type_reparation' => 'soudure_cadre',
+                'type_reparation' => 'renfort_cadre',
                 'description' => 'Réparation de soudure sur le cadre de la moto',
                 'garage' => 'Garage Andravoahangy',
                 'mecanicien' => 'Rakoto Mécanicien',

@@ -97,6 +97,8 @@ Route::middleware('auth:sanctum')->group(function () {
                 '/graphiques',
                 [DashboardController::class,'graphiques']
             );
+
+            Route::get('vehicules-actifs', [DashboardController::class, 'vehiculesActifs']);
             /*
             |--------------------------------------------------------------------------
             | Revenus motos
