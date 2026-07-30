@@ -19,7 +19,16 @@ class MotoController extends Controller
         // Le cache stocke les résultats paginés pendant 5 minutes
         return Cache::remember($cacheKey, 300, function () use ($request, $perPage) {
             
-            $query = Moto::query();
+            $query = Moto::select([
+                'id',
+                'immatriculation',
+                'marque',
+                'modele',
+                'photo',
+                'statut',
+                'type_vehicule',
+                'actif'
+            ]);
 
             // 2. INDEX SQL UTILISÉS ICI (statut, type_vehicule)
             if ($request->filled('statut')) {
@@ -39,7 +48,8 @@ class MotoController extends Controller
 
             // 3. EAGER LOADING (Charge les relations en 1 seule requête SQL)
             // On charge 'affectationActive.conducteur' pour éviter le N+1 lors de l'affichage
-            $motos = $query->with(['affectationActive.conducteur'])
+            $motos = $query->with(['affectationActive:id,moto_id,conducteur_id',
+                                  'affectationActive.conducteur:id,nom,prenom,telephone'])
                            ->latest()
                            ->paginate($perPage);
 
