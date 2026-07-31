@@ -85,7 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::get(
                 '/',
-                [DashboardController::class,'index']
+                [DashboardController::class,'full']
             );
             /*
             |--------------------------------------------------------------------------

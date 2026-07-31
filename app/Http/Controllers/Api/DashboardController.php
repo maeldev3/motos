@@ -13,38 +13,12 @@ class DashboardController extends Controller
         private readonly DashboardService $service
     ) {}
 
-    /**
-     * KPIs & Résumé global
-     */
-    public function index(Request $request)
+    public function full(Request $request)
     {
         $dates = $this->dateRange($request);
         return response()->json([
             'success' => true,
-            'data' => $this->service->kpis($dates['start'], $dates['end'])
-        ]);
-    }
-
-    /**
-     * Graphiques, Top motos, Répartition dépenses, Retards paiement
-     */
-    public function graphiques(Request $request)
-    {
-        $dates = $this->dateRange($request);
-        return response()->json([
-            'success' => true,
-            'data' => $this->service->graphiques($dates['start'], $dates['end'])
-        ]);
-    }
-
-    /**
-     * Liste détaillée des véhicules actifs avec leur conducteur (Pour la section "Véhicules actifs par conducteur")
-     */
-    public function vehiculesActifs()
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $this->service->vehiculesActifs()
+            'data' => $this->service->fullDashboard($dates['start'], $dates['end'])
         ]);
     }
 
