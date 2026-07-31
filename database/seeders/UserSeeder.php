@@ -13,7 +13,7 @@ class UserSeeder extends Seeder
         User::insert([
             [
                 'name' => 'Rakoto Admin',
-                'email' => 'admin@motomanager.mg',
+                'email' => 'ismael',
                 'password' => Hash::make('password'),
                 'role' => 'administrateur',
                 'actif' => true,

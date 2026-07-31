@@ -37,10 +37,10 @@ class DatabaseSeeder extends Seeder
             AffectationSeeder::class,   // dépend de motos + conducteurs
             VersementSeeder::class,     // dépend de affectations
             AbsenceSeeder::class,       // dépend de conducteurs
-            AvanceSeeder::class,        // dépend de conducteurs
+            // AvanceSeeder::class,        // dépend de conducteurs
             // ReparationSeeder::class,    // dépend de motos
-            DepenseSeeder::class,       // dépend de motos
-            AlerteSeeder::class,        // dépend de motos + versements + conducteurs
+            // DepenseSeeder::class,       // dépend de motos
+            // AlerteSeeder::class,        // dépend de motos + versements + conducteurs
         ]);
     }
 }

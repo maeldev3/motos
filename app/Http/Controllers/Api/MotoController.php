@@ -10,11 +10,28 @@ use Illuminate\Support\Facades\Validator;
 
 class MotoController extends Controller
 {
+    // =============================================
+    // VERSIONNAGE DU CACHE
+    // Le driver "file" (et d'autres) ne supportent pas Cache::tags(),
+    // donc on invalide toutes les listes en cache en changeant la version
+    // plutôt qu'en essayant de retrouver chaque clé individuellement
+    // (impossible, car la clé dépend d'un hash des paramètres de requête).
+    // =============================================
+    private function cacheVersion(): int
+    {
+        return Cache::get('motos_cache_version', 0);
+    }
+
+    private function bumpCacheVersion(): void
+    {
+        Cache::forever('motos_cache_version', now()->timestamp);
+    }
+
     public function index(Request $request)
     {
         // 1. PAGINATION & CACHE
         $perPage = $request->get('per_page', 20);
-        $cacheKey = 'motos_list_' . md5(json_encode($request->all()));
+        $cacheKey = 'motos_list_v' . $this->cacheVersion() . '_' . md5(json_encode($request->all()));
 
         // Le cache stocke les résultats paginés pendant 5 minutes
         return Cache::remember($cacheKey, 300, function () use ($request, $perPage) {
@@ -91,6 +108,7 @@ class MotoController extends Controller
         }
 
         $moto = Moto::create($data);
+        $this->bumpCacheVersion();
 
         return $this->created($moto);
     }
@@ -137,6 +155,10 @@ class MotoController extends Controller
         }
 
         $moto->update($data);
+        // Pas besoin de purger explicitement 'moto_show_{id}_{updated_at}' :
+        // updated_at change avec l'update, donc l'ancienne clé de cache
+        // devient automatiquement orpheline (elle expirera seule).
+        $this->bumpCacheVersion();
 
         return $this->ok($moto, 'Moto mise à jour');
     }
@@ -144,6 +166,7 @@ class MotoController extends Controller
     public function destroy(Moto $moto)
     {
         $moto->delete();
+        $this->bumpCacheVersion();
 
         return $this->ok(null, 'Moto supprimée');
     }
@@ -151,6 +174,7 @@ class MotoController extends Controller
     public function desactiver(Moto $moto)
     {
         $moto->update(['actif' => false, 'statut' => 'hors_service']);
+        $this->bumpCacheVersion();
 
         return $this->ok($moto, 'Moto désactivée');
     }
@@ -158,6 +182,7 @@ class MotoController extends Controller
     public function reactiver(Moto $moto)
     {
         $moto->update(['actif' => true, 'statut' => 'disponible']);
+        $this->bumpCacheVersion();
 
         return $this->ok($moto, 'Moto réactivée');
     }
