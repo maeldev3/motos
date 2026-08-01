@@ -34,9 +34,9 @@ class DashboardService
                 'motos_details'        => $this->motosDetails(),
                 'conducteurs_details'  => $this->conducteursDetails(),
                 'conducteurs_evolution'=> $this->conducteursEvolution($start, $end),
-                // 'motos_performance'    => $this->motosPerformance($start, $end),
+                'motos_performance'    => $this->motosPerformance($start, $end),
                 'versements_resume'    => $this->versementsResume($start, $end),
-                // 'alertes'              => $this->alertes(),
+                'alertes'              => $this->alertes(),
                 'vehicules_actifs'     => $this->vehiculesActifs(),
                 'modules'              => $this->modules(),
             ];
