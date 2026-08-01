@@ -30,15 +30,15 @@ class DashboardService
         return Cache::remember($key, self::TTL, function () use ($start, $end) {
             return [
                 'kpis'                 => $this->kpis($start, $end),
-                'graphiques'           => $this->graphiques($start, $end),
-                // 'motos_details'        => $this->motosDetails(),
-                // 'conducteurs_details'  => $this->conducteursDetails(),
-                // 'conducteurs_evolution'=> $this->conducteursEvolution($start, $end),
+                // 'graphiques'           => $this->graphiques($start, $end),
+                'motos_details'        => $this->motosDetails(),
+                'conducteurs_details'  => $this->conducteursDetails(),
+                'conducteurs_evolution'=> $this->conducteursEvolution($start, $end),
                 // 'motos_performance'    => $this->motosPerformance($start, $end),
-                // 'versements_resume'    => $this->versementsResume($start, $end),
+                'versements_resume'    => $this->versementsResume($start, $end),
                 // 'alertes'              => $this->alertes(),
-                // 'vehicules_actifs'     => $this->vehiculesActifs(),
-                // 'modules'              => $this->modules(),
+                'vehicules_actifs'     => $this->vehiculesActifs(),
+                'modules'              => $this->modules(),
             ];
         });
     }
