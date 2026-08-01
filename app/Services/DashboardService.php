@@ -322,11 +322,6 @@ class DashboardService
                 ])
                 ->get()
                 ->map(function ($moto) {
-                    // FIX PRINCIPAL : on écarte toute ligne dont la date est
-                    // NULL avant de faire quoi que ce soit avec ->format().
-                    // C'était la cause du "Server Error" : des dépenses ou
-                    // réparations avec date_depense / date_reparation NULL
-                    // faisaient planter ->format('Y-m') (Fatal Error).
                     $versements = $moto->versements->filter(fn($v) => $v->date_versement !== null)->values();
                     $depenses = $moto->depenses->filter(fn($d) => $d->date_depense !== null)->values();
                     $reparations = $moto->reparations->filter(fn($r) => $r->date_reparation !== null)->values();
