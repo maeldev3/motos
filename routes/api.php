@@ -43,10 +43,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('conducteurs/{conducteur}/reactiver', [ConducteurController::class, 'reactiver']);
     Route::post('conducteurs/{conducteur}/affecter-moto', [ConducteurController::class, 'affecterMoto']);
     Route::get('conducteurs/{conducteur}/historique-motos', [ConducteurController::class, 'historiqueMotos']);
-    Route::get('conducteurs/{conducteur}/versement',[ConducteurController::class,'versementInfo']);
+    Route::get('conducteurs/{conducteur}/versement', [ConducteurController::class, 'versementInfo']);
 
     // Affectations (historique global)
-    
+
     Route::get('affectations/{affectation}', [AffectationController::class, 'show']);
 
     // Versements
@@ -67,19 +67,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('depenses', DepenseController::class);
     Route::get('depenses-par-categorie', [DepenseController::class, 'parCategorie']);
 
-    // Tableau de bord
-        // =======================================================
-        // DASHBOARD
-        // =======================================================
 
-        Route::prefix('dashboard')->group(function () {
-            Route::get('/', [DashboardController::class, 'full']);
-                 Route::get('/conducteurs-evolution', [DashboardController::class, 'conducteursEvolution']);
-                 Route::get('/motos-performance', [DashboardController::class, 'motosPerformance']);
-                 Route::get('/versements-resume', [DashboardController::class, 'versementsResume']);
-                 Route::get('/modules', [DashboardController::class, 'modules']);
-                 Route::get('/vehicules-actifs', [DashboardController::class, 'full']);
-        });
+    // =======================================================
+    // DASHBOARD
+    // =======================================================
+
+    Route::prefix('dashboard')->group(function () {
+        Route::get('/', [DashboardController::class, 'full']);
+        Route::get('/conducteurs-evolution', [DashboardController::class, 'conducteursEvolution']);
+        Route::get('/motos-performance', [DashboardController::class, 'motosPerformance']);
+        Route::get('/versements-resume', [DashboardController::class, 'versementsResume']);
+        Route::get('/modules', [DashboardController::class, 'modules']);
+        Route::get('/vehicules-actifs', [DashboardController::class, 'full']);
+    });
 
     // Rapports
     Route::get('rapports/global', [RapportController::class, 'global']);
