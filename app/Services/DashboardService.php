@@ -11,13 +11,44 @@ use App\Models\Avance;
 use App\Models\Absence;
 use App\Models\Affectation;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 
 /**
  * DashboardService
  * ------------------------------------------------------------
+ * CORRECTIF (par rapport à la version précédente) :
  *
+ *  -> Cause des "Server Error" sur /api/dashboard et
+ *     /api/dashboard/motos-performance :
  *
+ *     1) `->format('Y-m')` était appelé directement sur des colonnes
+ *        nullable (date_versement, date_depense, date_reparation).
+ *        Dès qu'une seule ligne avait une date NULL en base, PHP levait
+ *        une Fatal Error "Call to a member function format() on null"
+ *        (Error, pas juste un warning -> crash garanti, peu importe
+ *        APP_DEBUG). C'était le cas dans motosPerformance() (dépenses /
+ *        réparations, jamais formatées ailleurs) et dans motosDetails().
+ *
+ *     2) `vehiculesActifs()` faisait `$a->moto->immatriculation` et
+ *        `$a->conducteur->nom` sans vérifier que la relation existe. Si
+ *        une Affectation active pointe vers une moto ou un conducteur
+ *        supprimé (soft delete) ou orphelin, l'accès à une propriété
+ *        sur null déclenche un warning PHP. Or Laravel convertit les
+ *        warnings PHP en ErrorException via son gestionnaire d'erreurs
+ *        -> 500 "Server Error" en prod (APP_DEBUG=false masque le detail).
+ *
+ *     Ces deux endpoints étaient appelés par fullDashboard(), d'où le
+ *     crash simultané de "/" et "/motos-performance".
+ *
+ *  -> Corrections apportées :
+ *     - Toutes les collections sont filtrées pour exclure les lignes à
+ *       date NULL avant tout ->format().
+ *     - Tous les accès à des relations optionnelles (moto, conducteur,
+ *       affectationActive) utilisent l'opérateur null-safe (?->) ou un
+ *       filtre préalable.
+ *     - vehiculesActifs() ignore désormais les affectations orphelines
+ *       au lieu de planter.
  */
 class DashboardService
 {
@@ -30,11 +61,11 @@ class DashboardService
         return Cache::remember($key, self::TTL, function () use ($start, $end) {
             return [
                 'kpis'                 => $this->kpis($start, $end),
-                // 'graphiques'           => $this->graphiques($start, $end),
-                'motos_performance'    => $this->motosPerformance($start, $end),
+                'graphiques'           => $this->graphiques($start, $end),
                 'motos_details'        => $this->motosDetails(),
                 'conducteurs_details'  => $this->conducteursDetails(),
                 'conducteurs_evolution'=> $this->conducteursEvolution($start, $end),
+                // 'motos_performance'    => $this->motosPerformance($start, $end),
                 'versements_resume'    => $this->versementsResume($start, $end),
                 'alertes'              => $this->alertes(),
                 'vehicules_actifs'     => $this->vehiculesActifs(),
@@ -105,15 +136,29 @@ class DashboardService
     // Graphiques généraux
     // ------------------------------------------------------------
 
+    /**
+     * FIX : ni TO_CHAR() (PostgreSQL) ni DATE_FORMAT() (MySQL) ne sont
+     * portables entre les deux moteurs. Comme le projet tourne en MySQL
+     * en local mais sur PostgreSQL (Neon) en prod, on détecte le driver
+     * actif via DB::connection()->getDriverName() et on génère la bonne
+     * syntaxe SQL en conséquence. Fonctionne aussi avec SQLite.
+     */
+    private function monthFormatSql(string $column): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'pgsql'  => "TO_CHAR($column, 'YYYY-MM')",
+            'sqlite' => "strftime('%Y-%m', $column)",
+            default  => "DATE_FORMAT($column, '%Y-%m')", // mysql / mariadb
+        };
+    }
+
     private function graphiques($start, $end)
     {
-        // FIX : TO_CHAR() est une fonction PostgreSQL. L'équivalent MySQL
-        // est DATE_FORMAT() avec le format '%Y-%m'.
-        $revenus = Versement::selectRaw("DATE_FORMAT(date_versement, '%Y-%m') as periode, SUM(montant_verse) as total")
+        $revenus = Versement::selectRaw($this->monthFormatSql('date_versement') . " as periode, SUM(montant_verse) as total")
             ->whereBetween('date_versement', [$start, $end])
             ->groupBy('periode')->orderBy('periode')->get();
 
-        $depenses = Depense::selectRaw("DATE_FORMAT(date_depense, '%Y-%m') as periode, SUM(montant) as total")
+        $depenses = Depense::selectRaw($this->monthFormatSql('date_depense') . " as periode, SUM(montant) as total")
             ->whereBetween('date_depense', [$start, $end])
             ->groupBy('periode')->orderBy('periode')->get();
 
@@ -322,6 +367,11 @@ class DashboardService
                 ])
                 ->get()
                 ->map(function ($moto) {
+                    // FIX PRINCIPAL : on écarte toute ligne dont la date est
+                    // NULL avant de faire quoi que ce soit avec ->format().
+                    // C'était la cause du "Server Error" : des dépenses ou
+                    // réparations avec date_depense / date_reparation NULL
+                    // faisaient planter ->format('Y-m') (Fatal Error).
                     $versements = $moto->versements->filter(fn($v) => $v->date_versement !== null)->values();
                     $depenses = $moto->depenses->filter(fn($d) => $d->date_depense !== null)->values();
                     $reparations = $moto->reparations->filter(fn($r) => $r->date_reparation !== null)->values();
@@ -464,7 +514,7 @@ class DashboardService
     // Véhicules actifs
     // ------------------------------------------------------------
 
-    public function vehiculesActifs()
+    private function vehiculesActifs()
     {
         return Affectation::where('active', true)
             ->with(['moto:id,immatriculation,type_vehicule', 'conducteur:id,nom,prenom'])
