@@ -73,82 +73,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // =======================================================
 
         Route::prefix('dashboard')->group(function () {
-            /*
-            |--------------------------------------------------------------------------
-            | KPI principaux
-            |--------------------------------------------------------------------------
-            |
-            | Exemple:
-            | /api/dashboard?period=month
-            |
-            */
-
-            Route::get(
-                '/',
-                [DashboardController::class,'full']
-            );
-            /*
-            |--------------------------------------------------------------------------
-            | Graphiques
-            |--------------------------------------------------------------------------
-            */
-
-            Route::get(
-                '/graphiques',
-                [DashboardController::class,'graphiques']
-            );
-
-            Route::get('vehicules-actifs', [DashboardController::class, 'vehiculesActifs']);
-            /*
-            |--------------------------------------------------------------------------
-            | Revenus motos
-            |--------------------------------------------------------------------------
-            */
-
-            Route::get(
-                '/revenus-motos',
-                [DashboardController::class,'revenusMotos']
-            );
-            /*
-            |--------------------------------------------------------------------------
-            | Dépenses motos
-            |--------------------------------------------------------------------------
-            */
-
-            Route::get(
-                '/depenses-motos',
-                [DashboardController::class,'depensesMotos']
-            );
-            /*
-            |--------------------------------------------------------------------------
-            | Bénéfice motos période
-            |--------------------------------------------------------------------------
-            */
-
-            Route::get(
-                '/benefices-motos',
-                [DashboardController::class,'beneficesMotos']
-            );
-            /*
-            |--------------------------------------------------------------------------
-            | Rentabilité depuis création
-            |--------------------------------------------------------------------------
-            */
-
-            Route::get(
-                '/rentabilite-motos',
-                [DashboardController::class,'rentabiliteMotos']
-            );
-            /*
-            |--------------------------------------------------------------------------
-            | Conducteurs retard paiement
-            |--------------------------------------------------------------------------
-            */
-            Route::get(
-                '/retards-paiement',
-                [DashboardController::class,'retardsPaiement']
-            );
-
+            Route::get('/', [DashboardController::class, 'full']);
+                 Route::get('/conducteurs-evolution', [DashboardController::class, 'conducteursEvolution']);
+                 Route::get('/motos-performance', [DashboardController::class, 'motosPerformance']);
+                 Route::get('/versements-resume', [DashboardController::class, 'versementsResume']);
+                 Route::get('/modules', [DashboardController::class, 'modules']);
+                 Route::get('/vehicules-actifs', [DashboardController::class, 'full']);
         });
 
     // Rapports
