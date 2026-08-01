@@ -79,18 +79,22 @@ class DashboardService
 
     private function kpis($start, $end)
     {
+        // FIX : "COUNT(*) FILTER(WHERE ...)" est une syntaxe PostgreSQL,
+        // incompatible avec MySQL (erreur 1064). On utilise l'équivalent
+        // portable SUM(CASE WHEN ... THEN 1 ELSE 0 END), qui fonctionne
+        // sur MySQL, PostgreSQL et SQLite.
         $motos = Moto::selectRaw("
             COUNT(*) total,
-            COUNT(*) FILTER(WHERE statut='disponible') disponibles,
-            COUNT(*) FILTER(WHERE statut='en_reparation') reparation,
-            COUNT(*) FILTER(WHERE statut='hors_service') hors_service,
-            COUNT(*) FILTER(WHERE statut='en_circulation') circulation
+            SUM(CASE WHEN statut='disponible' THEN 1 ELSE 0 END) disponibles,
+            SUM(CASE WHEN statut='en_reparation' THEN 1 ELSE 0 END) reparation,
+            SUM(CASE WHEN statut='hors_service' THEN 1 ELSE 0 END) hors_service,
+            SUM(CASE WHEN statut='en_circulation' THEN 1 ELSE 0 END) circulation
         ")->first();
 
         $conducteurs = Conducteur::selectRaw("
             COUNT(*) total,
-            COUNT(*) FILTER(WHERE statut='actif') actifs,
-            COUNT(*) FILTER(WHERE statut='suspendu') suspendus
+            SUM(CASE WHEN statut='actif' THEN 1 ELSE 0 END) actifs,
+            SUM(CASE WHEN statut='suspendu' THEN 1 ELSE 0 END) suspendus
         ")->first();
 
         $revenus = (float) Versement::whereBetween('date_versement', [$start, $end])->sum('montant_verse');
@@ -133,11 +137,13 @@ class DashboardService
 
     private function graphiques($start, $end)
     {
-        $revenus = Versement::selectRaw("TO_CHAR(date_versement, 'YYYY-MM') as periode, SUM(montant_verse) as total")
+        // FIX : TO_CHAR() est une fonction PostgreSQL. L'équivalent MySQL
+        // est DATE_FORMAT() avec le format '%Y-%m'.
+        $revenus = Versement::selectRaw("DATE_FORMAT(date_versement, '%Y-%m') as periode, SUM(montant_verse) as total")
             ->whereBetween('date_versement', [$start, $end])
             ->groupBy('periode')->orderBy('periode')->get();
 
-        $depenses = Depense::selectRaw("TO_CHAR(date_depense, 'YYYY-MM') as periode, SUM(montant) as total")
+        $depenses = Depense::selectRaw("DATE_FORMAT(date_depense, '%Y-%m') as periode, SUM(montant) as total")
             ->whereBetween('date_depense', [$start, $end])
             ->groupBy('periode')->orderBy('periode')->get();
 
@@ -412,11 +418,13 @@ class DashboardService
         return Cache::remember($key, self::TTL, function () use ($start, $end) {
             $parMoto = Moto::query()
                 ->select('motos.id', 'motos.immatriculation', 'motos.modele')
+                // FIX : "COUNT(...) FILTER (WHERE ...)" est PostgreSQL-only.
+                // Remplacé par SUM(CASE WHEN ... THEN 1 ELSE 0 END), portable.
                 ->selectRaw("
                     COALESCE(SUM(versements.montant_attendu), 0) as total_attendu,
                     COALESCE(SUM(versements.montant_verse), 0) as total_verse,
                     COALESCE(SUM(versements.reste_a_payer), 0) as total_reste,
-                    COUNT(versements.id) FILTER (WHERE versements.en_retard) as nb_retards
+                    SUM(CASE WHEN versements.en_retard THEN 1 ELSE 0 END) as nb_retards
                 ")
                 ->leftJoin('versements', function ($join) use ($start, $end) {
                     $join->on('motos.id', '=', 'versements.moto_id')
