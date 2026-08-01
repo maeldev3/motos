@@ -18,36 +18,6 @@ use Illuminate\Support\Carbon;
  * ------------------------------------------------------------
  *
  *
- *  -> Cause des "Server Error" sur /api/dashboard et
- *     /api/dashboard/motos-performance :
- *
- *     1) `->format('Y-m')` était appelé directement sur des colonnes
- *        nullable (date_versement, date_depense, date_reparation).
- *        Dès qu'une seule ligne avait une date NULL en base, PHP levait
- *        une Fatal Error "Call to a member function format() on null"
- *        (Error, pas juste un warning -> crash garanti, peu importe
- *        APP_DEBUG). C'était le cas dans motosPerformance() (dépenses /
- *        réparations, jamais formatées ailleurs) et dans motosDetails().
- *
- *     2) `vehiculesActifs()` faisait `$a->moto->immatriculation` et
- *        `$a->conducteur->nom` sans vérifier que la relation existe. Si
- *        une Affectation active pointe vers une moto ou un conducteur
- *        supprimé (soft delete) ou orphelin, l'accès à une propriété
- *        sur null déclenche un warning PHP. Or Laravel convertit les
- *        warnings PHP en ErrorException via son gestionnaire d'erreurs
- *        -> 500 "Server Error" en prod (APP_DEBUG=false masque le detail).
- *
- *     Ces deux endpoints étaient appelés par fullDashboard(), d'où le
- *     crash simultané de "/" et "/motos-performance".
- *
- *  -> Corrections apportées :
- *     - Toutes les collections sont filtrées pour exclure les lignes à
- *       date NULL avant tout ->format().
- *     - Tous les accès à des relations optionnelles (moto, conducteur,
- *       affectationActive) utilisent l'opérateur null-safe (?->) ou un
- *       filtre préalable.
- *     - vehiculesActifs() ignore désormais les affectations orphelines
- *       au lieu de planter.
  */
 class DashboardService
 {
@@ -499,7 +469,7 @@ class DashboardService
     // Véhicules actifs
     // ------------------------------------------------------------
 
-    private function vehiculesActifs()
+    public function vehiculesActifs()
     {
         return Affectation::where('active', true)
             ->with(['moto:id,immatriculation,type_vehicule', 'conducteur:id,nom,prenom'])

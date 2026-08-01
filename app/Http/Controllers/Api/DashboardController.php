@@ -84,6 +84,14 @@ class DashboardController extends Controller
             'data' => $this->service->modules(),
         ]);
     }
+    public function vehiculesActifs()
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->service->vehiculesActifs(),
+        ]);
+    }
+    
 
     private function dateRange(Request $request): array
     {

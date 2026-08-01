@@ -78,7 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/motos-performance', [DashboardController::class, 'motosPerformance']);
         Route::get('/versements-resume', [DashboardController::class, 'versementsResume']);
         Route::get('/modules', [DashboardController::class, 'modules']);
-        Route::get('/vehicules-actifs', [DashboardController::class, 'full']);
+        Route::get('/vehicules-actifs', [DashboardController::class, 'vehiculesActifs']);
     });
 
     // Rapports
