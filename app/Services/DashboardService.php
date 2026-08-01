@@ -16,35 +16,38 @@ use Illuminate\Support\Carbon;
 /**
  * DashboardService
  * ------------------------------------------------------------
- * Version corrigée et enrichie.
+ * CORRECTIF (par rapport à la version précédente) :
  *
- * Corrections principales par rapport à la version d'origine :
- *  - "moto_actuelle" / "conducteur_actuel" utilisaient deux sources
- *    différentes (Conducteur::moto_id vs Affectation::active). Les deux
- *    méthodes peuvent donc afficher des infos incohérentes si une
- *    affectation existe sans que moto_id soit mis à jour (ou l'inverse).
- *    -> On utilise désormais l'affectation active comme source de vérité,
- *       avec repli sur la relation directe si aucune affectation active.
- *  - motosDetails() chargeait TOUTES les données historiques sans limite
- *    -> ok pour un total "depuis toujours" mais coûteux ; on garde ce
- *       comportement pour les totaux globaux, mais on évite le N+1 en
- *       pré-chargeant proprement les relations utilisées.
- *  - alertes() faisait un job que le scope Versement::retard() fait déjà
- *    -> simplifié.
- *  - Toutes les nouvelles fonctionnalités demandées ont été ajoutées :
- *      conducteursEvolution() : évolution du travail (versements) et
- *          absences de chaque conducteur, sous forme de série mensuelle
- *          exploitable en graphique (comme les captures "Versement Njaka",
- *          "Versement Jese", "Versement Fihorenana").
- *      motosPerformance()     : revenus / dépenses / réparations /
- *          bénéfice par moto, avec évolution mensuelle.
- *      versementsResume()     : résumé des versements par moto + total
- *          global (attendu / versé / reste à payer / retards).
- *      modules()               : vue d'ensemble de TOUTES les
- *          fonctionnalités de l'application (compteurs par module) pour
- *          affichage en grille sur le dashboard.
- *  - Toutes les nouvelles méthodes sont mises en cache (10 min), avec
- *    une clé qui dépend de la période, comme le reste du service.
+ *  -> Cause des "Server Error" sur /api/dashboard et
+ *     /api/dashboard/motos-performance :
+ *
+ *     1) `->format('Y-m')` était appelé directement sur des colonnes
+ *        nullable (date_versement, date_depense, date_reparation).
+ *        Dès qu'une seule ligne avait une date NULL en base, PHP levait
+ *        une Fatal Error "Call to a member function format() on null"
+ *        (Error, pas juste un warning -> crash garanti, peu importe
+ *        APP_DEBUG). C'était le cas dans motosPerformance() (dépenses /
+ *        réparations, jamais formatées ailleurs) et dans motosDetails().
+ *
+ *     2) `vehiculesActifs()` faisait `$a->moto->immatriculation` et
+ *        `$a->conducteur->nom` sans vérifier que la relation existe. Si
+ *        une Affectation active pointe vers une moto ou un conducteur
+ *        supprimé (soft delete) ou orphelin, l'accès à une propriété
+ *        sur null déclenche un warning PHP. Or Laravel convertit les
+ *        warnings PHP en ErrorException via son gestionnaire d'erreurs
+ *        -> 500 "Server Error" en prod (APP_DEBUG=false masque le detail).
+ *
+ *     Ces deux endpoints étaient appelés par fullDashboard(), d'où le
+ *     crash simultané de "/" et "/motos-performance".
+ *
+ *  -> Corrections apportées :
+ *     - Toutes les collections sont filtrées pour exclure les lignes à
+ *       date NULL avant tout ->format().
+ *     - Tous les accès à des relations optionnelles (moto, conducteur,
+ *       affectationActive) utilisent l'opérateur null-safe (?->) ou un
+ *       filtre préalable.
+ *     - vehiculesActifs() ignore désormais les affectations orphelines
+ *       au lieu de planter.
  */
 class DashboardService
 {
@@ -125,7 +128,7 @@ class DashboardService
     }
 
     // ------------------------------------------------------------
-    // Graphiques généraux (existant, légèrement optimisé)
+    // Graphiques généraux
     // ------------------------------------------------------------
 
     private function graphiques($start, $end)
@@ -172,8 +175,6 @@ class DashboardService
             ->limit(10)
             ->get();
 
-        // Top conducteurs par montant versé sur la période (utilisé par le
-        // widget "Top conducteurs" côté Flutter, absent de la version d'origine).
         $topConducteurs = Conducteur::query()
             ->select('conducteurs.id', 'conducteurs.nom', 'conducteurs.prenom')
             ->selectRaw('COALESCE(SUM(versements.montant_verse), 0) as score')
@@ -214,7 +215,10 @@ class DashboardService
                 $depensesGlobal = (float) $moto->depenses->sum('montant') + (float) $moto->reparations->sum('montant');
                 $beneficeGlobal = $revenusGlobal - $depensesGlobal;
 
+                // FIX : on exclut les versements sans date avant de formater,
+                // sinon ->format() sur null provoque une Fatal Error.
                 $graphique = $moto->versements
+                    ->filter(fn($v) => $v->date_versement !== null)
                     ->groupBy(fn($v) => $v->date_versement->format('Y-m'))
                     ->map(fn($group) => (float) $group->sum('montant_verse'))
                     ->sortKeys();
@@ -253,7 +257,6 @@ class DashboardService
                 $totalRetenues = (float) $conducteur->absences->sum('retenue');
                 $totalVersements = (float) $conducteur->versements->sum('montant_verse');
 
-                // Source de vérité : affectation active, repli sur moto_id direct.
                 $motoActuelle = $conducteur->affectations->first()?->moto?->immatriculation
                     ?? $conducteur->moto?->immatriculation;
 
@@ -271,8 +274,7 @@ class DashboardService
     }
 
     // ------------------------------------------------------------
-    // NOUVEAU : évolution du travail de chaque conducteur
-    // (versements mensuels + absences) depuis son embauche / affectation
+    // Évolution du travail de chaque conducteur
     // ------------------------------------------------------------
 
     public function conducteursEvolution($start, $end)
@@ -288,7 +290,10 @@ class DashboardService
                 ])
                 ->get()
                 ->map(function ($conducteur) {
+                    // FIX : on exclut les versements sans date_versement
+                    // avant tout groupBy/format.
                     $evolutionMensuelle = $conducteur->versements
+                        ->filter(fn($v) => $v->date_versement !== null)
                         ->groupBy(fn($v) => $v->date_versement->format('Y-m'))
                         ->map(fn($group) => [
                             'periode' => $group->first()->date_versement->format('Y-m'),
@@ -303,8 +308,6 @@ class DashboardService
                     $motoActuelle = $affectationActive?->moto?->immatriculation
                         ?? $conducteur->moto?->immatriculation;
 
-                    // "depuis_le" = début de l'affectation à la moto actuelle si connu,
-                    // sinon repli sur la date d'embauche du conducteur.
                     $depuisLe = $affectationActive?->date_debut
                         ? $affectationActive->date_debut->format('Y-m-d')
                         : optional($conducteur->date_embauche)->format('Y-m-d');
@@ -327,8 +330,7 @@ class DashboardService
     }
 
     // ------------------------------------------------------------
-    // NOUVEAU : performance de chaque moto
-    // (revenus / dépenses / réparations / bénéfice + évolution mensuelle)
+    // Performance de chaque moto
     // ------------------------------------------------------------
 
     public function motosPerformance($start, $end)
@@ -344,24 +346,33 @@ class DashboardService
                 ])
                 ->get()
                 ->map(function ($moto) {
-                    $revenus = (float) $moto->versements->sum('montant_verse');
-                    $depenses = (float) $moto->depenses->sum('montant');
-                    $reparations = (float) $moto->reparations->sum('montant');
-                    $benefice = $revenus - $depenses - $reparations;
+                    // FIX PRINCIPAL : on écarte toute ligne dont la date est
+                    // NULL avant de faire quoi que ce soit avec ->format().
+                    // C'était la cause du "Server Error" : des dépenses ou
+                    // réparations avec date_depense / date_reparation NULL
+                    // faisaient planter ->format('Y-m') (Fatal Error).
+                    $versements = $moto->versements->filter(fn($v) => $v->date_versement !== null)->values();
+                    $depenses = $moto->depenses->filter(fn($d) => $d->date_depense !== null)->values();
+                    $reparations = $moto->reparations->filter(fn($r) => $r->date_reparation !== null)->values();
+
+                    $revenus = (float) $versements->sum('montant_verse');
+                    $depensesTotal = (float) $depenses->sum('montant');
+                    $reparationsTotal = (float) $reparations->sum('montant');
+                    $benefice = $revenus - $depensesTotal - $reparationsTotal;
 
                     $conducteurActuel = $moto->affectationActive?->conducteur
                         ? trim($moto->affectationActive->conducteur->nom . ' ' . $moto->affectationActive->conducteur->prenom)
                         : null;
 
-                    $periodes = $moto->versements->map(fn($v) => $v->date_versement->format('Y-m'))
-                        ->merge($moto->depenses->map(fn($d) => $d->date_depense->format('Y-m')))
-                        ->merge($moto->reparations->map(fn($r) => $r->date_reparation->format('Y-m')))
+                    $periodes = $versements->map(fn($v) => $v->date_versement->format('Y-m'))
+                        ->merge($depenses->map(fn($d) => $d->date_depense->format('Y-m')))
+                        ->merge($reparations->map(fn($r) => $r->date_reparation->format('Y-m')))
                         ->unique()->sort()->values();
 
-                    $evolution = $periodes->map(function ($periode) use ($moto) {
-                        $r = $moto->versements->filter(fn($v) => $v->date_versement->format('Y-m') === $periode)->sum('montant_verse');
-                        $d = $moto->depenses->filter(fn($x) => $x->date_depense->format('Y-m') === $periode)->sum('montant');
-                        $rep = $moto->reparations->filter(fn($x) => $x->date_reparation->format('Y-m') === $periode)->sum('montant');
+                    $evolution = $periodes->map(function ($periode) use ($versements, $depenses, $reparations) {
+                        $r = $versements->filter(fn($v) => $v->date_versement->format('Y-m') === $periode)->sum('montant_verse');
+                        $d = $depenses->filter(fn($x) => $x->date_depense->format('Y-m') === $periode)->sum('montant');
+                        $rep = $reparations->filter(fn($x) => $x->date_reparation->format('Y-m') === $periode)->sum('montant');
 
                         return [
                             'periode' => $periode,
@@ -370,7 +381,7 @@ class DashboardService
                             'reparations' => (float) $rep,
                             'benefice' => (float) ($r - $d - $rep),
                         ];
-                    });
+                    })->values();
 
                     return [
                         'id' => $moto->id,
@@ -379,8 +390,8 @@ class DashboardService
                         'statut' => $moto->statut,
                         'conducteur_actuel' => $conducteurActuel,
                         'revenus' => $revenus,
-                        'depenses' => $depenses,
-                        'reparations' => $reparations,
+                        'depenses' => $depensesTotal,
+                        'reparations' => $reparationsTotal,
                         'benefice' => $benefice,
                         'evolution' => $evolution,
                     ];
@@ -391,7 +402,7 @@ class DashboardService
     }
 
     // ------------------------------------------------------------
-    // NOUVEAU : résumé des versements par moto + total global
+    // Résumé des versements par moto + total global
     // ------------------------------------------------------------
 
     public function versementsResume($start, $end)
@@ -439,7 +450,7 @@ class DashboardService
     }
 
     // ------------------------------------------------------------
-    // Alertes (simplifié via le scope Versement::retard())
+    // Alertes
     // ------------------------------------------------------------
 
     private function alertes()
@@ -469,7 +480,7 @@ class DashboardService
                 'type' => 'retard_paiement',
                 'moto' => null,
                 'message' => "{$retard->nom} {$retard->prenom} : dette de "
-                    . number_format($retard->dette, 0, ',', ' ') . " Ar",
+                    . number_format((float) $retard->dette, 0, ',', ' ') . " Ar",
             ];
         }
 
@@ -485,16 +496,20 @@ class DashboardService
         return Affectation::where('active', true)
             ->with(['moto:id,immatriculation,type_vehicule', 'conducteur:id,nom,prenom'])
             ->get()
+            // FIX : on écarte les affectations orphelines (moto ou
+            // conducteur supprimé / introuvable) au lieu de planter sur
+            // $a->moto->... / $a->conducteur->... quand la relation est null.
+            ->filter(fn($a) => $a->moto !== null && $a->conducteur !== null)
             ->map(fn($a) => [
                 'type' => $a->moto->type_vehicule ?? 'moto',
                 'nom' => $a->moto->immatriculation,
                 'conducteur' => trim($a->conducteur->nom . ' ' . $a->conducteur->prenom),
-            ]);
+            ])
+            ->values();
     }
 
     // ------------------------------------------------------------
-    // NOUVEAU : vue d'ensemble de tous les modules de l'application
-    // (pour un accès rapide depuis le dashboard)
+    // Vue d'ensemble de tous les modules de l'application
     // ------------------------------------------------------------
 
     public function modules()
