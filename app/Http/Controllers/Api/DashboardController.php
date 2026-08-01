@@ -20,12 +20,13 @@ class DashboardController extends Controller
      */
     public function full(Request $request)
     {
-        $dates = $this->dateRange($request);
+        return response()->json(['message'=> 'ok']);
+        // $dates = $this->dateRange($request);
 
-        return response()->json([
-            'success' => true,
-            'data' => $this->service->fullDashboard($dates['start'], $dates['end']),
-        ]);
+        // return response()->json([
+        //     'success' => true,
+        //     'data' => $this->service->fullDashboard($dates['start'], $dates['end']),
+        // ]);
     }
 
     /**
