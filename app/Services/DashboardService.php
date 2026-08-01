@@ -30,7 +30,7 @@ class DashboardService
         return Cache::remember($key, self::TTL, function () use ($start, $end) {
             return [
                 'kpis'                 => $this->kpis($start, $end),
-                // 'graphiques'           => $this->graphiques($start, $end),
+                'graphiques'           => $this->graphiques($start, $end),
                 // 'motos_details'        => $this->motosDetails(),
                 // 'conducteurs_details'  => $this->conducteursDetails(),
                 // 'conducteurs_evolution'=> $this->conducteursEvolution($start, $end),
