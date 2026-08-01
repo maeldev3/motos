@@ -16,7 +16,7 @@ use Illuminate\Support\Carbon;
 /**
  * DashboardService
  * ------------------------------------------------------------
- * CORRECTIF (par rapport à la version précédente) :
+ *
  *
  *  -> Cause des "Server Error" sur /api/dashboard et
  *     /api/dashboard/motos-performance :
