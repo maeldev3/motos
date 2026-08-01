@@ -13,6 +13,18 @@ class DepenseController extends Controller
 
     /**
      * Liste dépenses optimisée
+     *
+     * FIX : on renvoyait le paginator Laravel brut ({current_page, data, total, ...}).
+     * Or le paginator a lui-même une clé "data" (la liste des éléments), ce qui entre
+     * en collision avec le reste de l'API qui utilise toujours l'enveloppe
+     * {"success": true, "data": ...}. Côté Flutter, ApiClient.get() dépile
+     * automatiquement la clé "data" du wrapper -> sur cet endpoint il dépilait en
+     * réalité la liste des dépenses (souvent vide), et Paginated.fromJson recevait
+     * une List au lieu du Map attendu :
+     *   TypeError: JSArray<dynamic> is not a subtype of type Map<String, dynamic>
+     *
+     * On enveloppe donc le paginator dans le même format que tout le reste de
+     * l'API, pour que "data" corresponde bien à l'objet paginator complet.
      */
     public function index(Request $request)
     {
@@ -21,7 +33,7 @@ class DepenseController extends Controller
         $cacheKey = 'depenses_' . md5(json_encode($request->all()));
 
 
-        return Cache::remember($cacheKey,300,function() use($request,$perPage){
+        $paginated = Cache::remember($cacheKey,300,function() use($request,$perPage){
 
 
             $query = Depense::query()
@@ -118,6 +130,11 @@ class DepenseController extends Controller
 
         });
 
+        return response()->json([
+            'success' => true,
+            'data' => $paginated,
+        ]);
+
     }
 
 
@@ -200,8 +217,7 @@ class DepenseController extends Controller
     public function show(Depense $depense)
     {
 
-
-        return Cache::remember(
+        $data = Cache::remember(
             'depense_'.$depense->id,
             600,
             function() use($depense){
@@ -214,6 +230,11 @@ class DepenseController extends Controller
 
             }
         );
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
 
     }
 
@@ -280,6 +301,10 @@ class DepenseController extends Controller
 
     /**
      * Statistique par catégorie
+     *
+     * FIX : même correction que index() — on enveloppe le résultat dans
+     * {"success": true, "data": [...]} pour rester cohérent avec le reste
+     * de l'API et avec ce qu'attend le client Flutter.
      */
     public function parCategorie(Request $request)
     {
@@ -288,7 +313,7 @@ class DepenseController extends Controller
         $annee=$request->annee ?? now()->year;
 
 
-        return Cache::remember(
+        $data = Cache::remember(
             "depenses_stat_$annee",
             3600,
             function() use($annee){
@@ -317,6 +342,11 @@ class DepenseController extends Controller
 
             }
         );
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
 
 
     }
