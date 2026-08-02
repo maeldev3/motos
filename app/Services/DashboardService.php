@@ -112,7 +112,8 @@ class DashboardService
         $revenusPrec = (float) Versement::whereBetween('date_versement', [$prevStart, $prevEnd])->sum('montant_verse');
         $beneficePrec = $revenusPrec - ((float) Depense::whereBetween('date_depense', [$prevStart, $prevEnd])->sum('montant')
             + (float) Reparation::whereBetween('date_reparation', [$prevStart, $prevEnd])->sum('montant'));
-        
+        $objectifs = Versement::selectRaw($this->monthFormatSql('date_versement') . " as periode, SUM(montant_attendu) as total")
+            ->groupBy('periode')->orderBy('periode')->get();
 
         $enRetard = (int) Versement::whereBetween('date_versement', [$start, $end])->retard()->count();
 
@@ -134,6 +135,7 @@ class DashboardService
             ],
             "finance" => [
                 "revenus" => $revenus,
+                "objectifs_mensuels" => $objectifs,
                 "depenses" => $depenses,
                 "benefice" => $revenus - $depenses,
                 "avances" => $avances,
