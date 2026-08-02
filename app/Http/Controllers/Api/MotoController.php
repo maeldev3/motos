@@ -114,18 +114,80 @@ class MotoController extends Controller
         return $this->created($moto);
     }
 
-    public function show(Moto $moto)
+    public function show(int $id)
     {
-        // 1. CACHE PAR ID
-        $cacheKey = 'moto_show_' . $moto->id . '_' . $moto->updated_at->timestamp;
-        
-        return Cache::remember($cacheKey, 600, function () use ($moto) {
-            // 2. EAGER LOADING DES RELATIONS
-            $moto->load(['affectationActive.conducteur', 'reparations', 'depenses']);
-            return $this->ok($moto);
-        });
-    }
+        $cacheKey = "moto_show_{$id}";
+    
+        $moto = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($id) {
+    
+            return Moto::query()
+    
+                ->select([
+                    'id',
+                    'immatriculation',
+                    'marque',
+                    'modele',
+                    'couleur',
+                    'annee_fabrication',
+                    'numero_chassis',
+                    'numero_moteur',
+                    'date_achat',
+                    'prix_achat',
+                    'type_vehicule',
+                    'montant_versement_mensuel',
+                    'statut',
+                    'actif',
+                ])
+    
+                ->with([
+    
+                    'affectationActive' => function ($q) {
+                        $q->select([
+                            'id',
+                            'moto_id',
+                            'conducteur_id',
+                            'active'
+                        ]);
+                    },
+    
+                    'affectationActive.conducteur' => function ($q) {
+                        $q->select([
+                            'id',
+                            'nom',
+                            'prenom'
+                        ]);
+                    },
+    
+                  'reparations' => function ($q) {
+                        $q->select([
+                            'id',
+                            'moto_id',
+                            'date_reparation',
+                            'type_reparation',
+                            'montant'
+                        ])
+                        ->latest('date_reparation')
+                        ->limit(5);
+                    },
 
+                    'depenses' => function ($q) {
+                        $q->select([
+                            'id',
+                            'moto_id',
+                            'date_depense',
+                            'categorie',
+                            'montant'
+                        ])
+                        ->latest('date_depense')
+                        ->limit(5);
+                    },
+                ])
+    
+                ->findOrFail($id);
+        });
+    
+        return $this->ok($moto);
+    }
     public function update(Request $request, Moto $moto)
     {
         $validator = Validator::make($request->all(), [
