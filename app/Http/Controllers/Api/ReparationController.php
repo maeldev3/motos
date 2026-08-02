@@ -11,16 +11,32 @@ class ReparationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Reparation::select('id','moto_id','date_reparation','type_reparation','');
-
+        $query = Reparation::query()
+            ->select([
+                'id',
+                'moto_id',
+                'date_reparation',
+                'type_reparation',
+                'montant',
+                'garage',
+            ]);
+            // ->with([
+            //     'moto:id,immatriculation,marque,modele'
+            // ]);
+    
         if ($request->filled('moto_id')) {
             $query->where('moto_id', $request->moto_id);
         }
+    
         if ($request->filled('type_reparation')) {
             $query->where('type_reparation', $request->type_reparation);
         }
-
-        return $this->ok($query->latest('date_reparation')->paginate($request->get('per_page', 20)));
+    
+        return $this->ok(
+            $query
+                ->latest('date_reparation')
+                ->paginate($request->integer('per_page', 20))
+        );
     }
 
     public function store(Request $request)
