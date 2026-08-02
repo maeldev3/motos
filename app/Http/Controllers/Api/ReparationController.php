@@ -11,7 +11,7 @@ class ReparationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Reparation::with('moto');
+        $query = Reparation::select('id','moto_id','date_reparation','type_reparation','');
 
         if ($request->filled('moto_id')) {
             $query->where('moto_id', $request->moto_id);

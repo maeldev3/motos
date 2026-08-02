@@ -139,49 +139,49 @@ class MotoController extends Controller
                     'actif',
                 ])
     
-                ->with([
+                // ->with([
     
-                    'affectationActive' => function ($q) {
-                        $q->select([
-                            'id',
-                            'moto_id',
-                            'conducteur_id',
-                            'active'
-                        ]);
-                    },
+                //     'affectationActive' => function ($q) {
+                //         $q->select([
+                //             'id',
+                //             'moto_id',
+                //             'conducteur_id',
+                //             'active'
+                //         ]);
+                //     },
     
-                    'affectationActive.conducteur' => function ($q) {
-                        $q->select([
-                            'id',
-                            'nom',
-                            'prenom'
-                        ]);
-                    },
+                //     'affectationActive.conducteur' => function ($q) {
+                //         $q->select([
+                //             'id',
+                //             'nom',
+                //             'prenom'
+                //         ]);
+                //     },
     
-                  'reparations' => function ($q) {
-                        $q->select([
-                            'id',
-                            'moto_id',
-                            'date_reparation',
-                            'type_reparation',
-                            'montant'
-                        ])
-                        ->latest('date_reparation')
-                        ->limit(5);
-                    },
+                //   'reparations' => function ($q) {
+                //         $q->select([
+                //             'id',
+                //             'moto_id',
+                //             'date_reparation',
+                //             'type_reparation',
+                //             'montant'
+                //         ])
+                //         ->latest('date_reparation')
+                //         ->limit(5);
+                //     },
 
-                    'depenses' => function ($q) {
-                        $q->select([
-                            'id',
-                            'moto_id',
-                            'date_depense',
-                            'categorie',
-                            'montant'
-                        ])
-                        ->latest('date_depense')
-                        ->limit(5);
-                    },
-                ])
+                //     'depenses' => function ($q) {
+                //         $q->select([
+                //             'id',
+                //             'moto_id',
+                //             'date_depense',
+                //             'categorie',
+                //             'montant'
+                //         ])
+                //         ->latest('date_depense')
+                //         ->limit(5);
+                //     },
+                // ])
     
                 ->findOrFail($id);
         });
