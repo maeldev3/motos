@@ -57,7 +57,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('absences', AbsenceController::class);
 
     // Avances / provisions
-    Route::apiResource('avances', AvanceController::class)->except(['update']);
+    // NOTE: 'update' est désormais autorisé (modification depuis l'app mobile).
+    // Assure-toi que AvanceController possède bien une méthode update(Request $request, Avance $avance).
+    Route::apiResource('avances', AvanceController::class);
     Route::post('avances/{avance}/rembourser', [AvanceController::class, 'rembourser']);
 
     // Réparations
