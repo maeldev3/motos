@@ -12,7 +12,7 @@ class UserSeeder extends Seeder
     {
         User::insert([
             [
-                'name' => 'Rakoto Admin',
+                'name' => 'Rabemiafara',
                 'email' => 'ismael',
                 'password' => Hash::make('password'),
                 'role' => 'administrateur',
@@ -22,8 +22,8 @@ class UserSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'name' => 'Rasoa Gestionnaire',
-                'email' => 'gestionnaire@motomanager.mg',
+                'name' => 'Dev Gestionnaire',
+                'email' => 'maeldev3@motomanager.com',
                 'password' => Hash::make('password'),
                 'role' => 'gestionnaire',
                 'actif' => true,
@@ -32,8 +32,8 @@ class UserSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'name' => 'Randria Comptable',
-                'email' => 'comptable@motomanager.mg',
+                'name' => 'Jese Comptable',
+                'email' => 'jese@motomanager.mg',
                 'password' => Hash::make('password'),
                 'role' => 'comptable',
                 'actif' => true,
@@ -43,7 +43,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Fara Consultation',
-                'email' => 'consultation@motomanager.mg',
+                'email' => 'njaka@motomanager.mg',
                 'password' => Hash::make('password'),
                 'role' => 'consultation',
                 'actif' => true,
