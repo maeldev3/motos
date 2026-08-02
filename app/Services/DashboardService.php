@@ -104,10 +104,15 @@ class DashboardService
 
         $avances = (float) Avance::where('type', 'avance')->sum('solde');
         $provisions = (float) Avance::where('type', 'provision')->sum('solde');
-        $prevStart = $start->copy()->sub($end->diffAsCarbonInterval($start));
+        
+        $prevDuration = $start->diffInDays($end);
         $prevEnd = $start->copy()->subDay();
-        $revenus = (float) Versement::whereBetween('date_versement', [$start, $end])->sum('montant_verse');
+        $prevStart = $prevEnd->copy()->subDays($prevDuration);
+        
         $revenusPrec = (float) Versement::whereBetween('date_versement', [$prevStart, $prevEnd])->sum('montant_verse');
+        $beneficePrec = $revenusPrec - ((float) Depense::whereBetween('date_depense', [$prevStart, $prevEnd])->sum('montant')
+            + (float) Reparation::whereBetween('date_reparation', [$prevStart, $prevEnd])->sum('montant'));
+        
 
         $enRetard = (int) Versement::whereBetween('date_versement', [$start, $end])->retard()->count();
 
@@ -133,6 +138,8 @@ class DashboardService
                 "benefice" => $revenus - $depenses,
                 "avances" => $avances,
                 "provisions" => $provisions,
+                "revenus_variation_pct" => $revenusPrec > 0 ? round((($revenus - $revenusPrec) / $revenusPrec) * 100, 1) : null,
+                "benefice_variation_pct" => $beneficePrec != 0 ? round((($revenus - $depenses - $beneficePrec) / abs($beneficePrec)) * 100, 1) : null,
             ],
         ];
     }
