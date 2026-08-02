@@ -389,7 +389,7 @@ class DashboardService
                         ? trim($moto->affectationActive->conducteur->nom . ' ' . $moto->affectationActive->conducteur->prenom)
                         : null;
 
-                    $periodes = $versements->map(fn($v) => $v->date_versement->format('Y-m'))
+                        $periodes = collect($versements->map(fn($v) => $v->date_versement->format('Y-m')))
                         ->merge($depenses->map(fn($d) => $d->date_depense->format('Y-m')))
                         ->merge($reparations->map(fn($r) => $r->date_reparation->format('Y-m')))
                         ->unique()->sort()->values();

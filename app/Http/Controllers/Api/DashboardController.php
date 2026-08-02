@@ -88,7 +88,7 @@ class DashboardController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => $this->service->vehiculesActifs(),
+            // 'data' => $this->service->vehiculesActifs(),
         ]);
     }
     
