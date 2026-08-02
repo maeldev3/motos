@@ -43,11 +43,11 @@ class DepenseController extends Controller
                     'date_depense',
                     'categorie',
                     'montant',
-                    'commentaire'
-                ])
-                ->with([
-                    'moto:id,immatriculation,marque,modele'
+                    // 'commentaire'
                 ]);
+                // ->with([
+                //     'moto:id,immatriculation,marque,modele'
+                // ]);
 
 
             /*
