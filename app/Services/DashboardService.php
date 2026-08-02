@@ -104,6 +104,10 @@ class DashboardService
 
         $avances = (float) Avance::where('type', 'avance')->sum('solde');
         $provisions = (float) Avance::where('type', 'provision')->sum('solde');
+        $prevStart = $start->copy()->sub($end->diffAsCarbonInterval($start));
+        $prevEnd = $start->copy()->subDay();
+        $revenus = (float) Versement::whereBetween('date_versement', [$start, $end])->sum('montant_verse');
+        $revenusPrec = (float) Versement::whereBetween('date_versement', [$prevStart, $prevEnd])->sum('montant_verse');
 
         $enRetard = (int) Versement::whereBetween('date_versement', [$start, $end])->retard()->count();
 
@@ -121,6 +125,7 @@ class DashboardService
                 "actifs" => (int) $conducteurs->actifs,
                 "suspendus" => (int) $conducteurs->suspendus,
                 "en_retard_paiement" => $enRetard,
+                "variation_pct" => $revenusPrec > 0 ? (($revenus - $revenusPrec) / $revenusPrec) * 100 : null
             ],
             "finance" => [
                 "revenus" => $revenus,
