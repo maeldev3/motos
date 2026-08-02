@@ -65,7 +65,7 @@ class DashboardService
                 'motos_details'        => $this->motosDetails(),
                 'conducteurs_details'  => $this->conducteursDetails(),
                 'conducteurs_evolution'=> $this->conducteursEvolution($start, $end),
-                // 'motos_performance'    => $this->motosPerformance($start, $end),
+                'motos_performance'    => $this->motosPerformance($start, $end),
                 'versements_resume'    => $this->versementsResume($start, $end),
                 'alertes'              => $this->alertes(),
                 'vehicules_actifs'     => $this->vehiculesActifs(),
@@ -152,18 +152,30 @@ class DashboardService
         };
     }
 
+    /**
+     * FIX (demande explicite : "je veux pas de filtre... je veux avoir
+     * tous les informations versement tous les motos") : cette méthode
+     * ignore désormais volontairement $start/$end. Avant, chaque
+     * sous-requête faisait whereBetween(date, [$start, $end]) avec la
+     * période du sélecteur (par défaut "ce mois-ci"), donc si tous tes
+     * versements réels étaient sur des mois passés (février à juillet),
+     * la période par défaut "août" ne matchait plus rien -> graphiques
+     * vides alors que les données existent bel et bien en base. On
+     * s'aligne maintenant sur motosDetails()/conducteursDetails(), qui
+     * calculent déjà des totaux "depuis toujours" sans filtre.
+     * $start/$end restent acceptés en paramètres (pour ne pas casser la
+     * signature ni l'appel depuis fullDashboard()) mais ne sont plus
+     * utilisés ici.
+     */
     private function graphiques($start, $end)
     {
         $revenus = Versement::selectRaw($this->monthFormatSql('date_versement') . " as periode, SUM(montant_verse) as total")
-            ->whereBetween('date_versement', [$start, $end])
             ->groupBy('periode')->orderBy('periode')->get();
 
         $depenses = Depense::selectRaw($this->monthFormatSql('date_depense') . " as periode, SUM(montant) as total")
-            ->whereBetween('date_depense', [$start, $end])
             ->groupBy('periode')->orderBy('periode')->get();
 
         $categories = Depense::selectRaw("categorie, SUM(montant) as total")
-            ->whereBetween('date_depense', [$start, $end])
             ->groupBy('categorie')->orderByDesc('total')->get();
 
         $depensesMap = $depenses->pluck('total', 'periode')->toArray();
@@ -172,37 +184,29 @@ class DashboardService
             "benefice" => $rev->total - ($depensesMap[$rev->periode] ?? 0),
         ])->values();
 
+        // FIX : plus de leftJoin multiples (fan-out / produit cartésien
+        // entre versements x depenses x reparations qui faussait les
+        // sommes). Chaque total est calculé par une sous-requête
+        // indépendante, donc pas de multiplication de lignes.
         $topMotos = Moto::query()
             ->select('motos.id', 'motos.immatriculation')
-            ->selectRaw("
-                COALESCE(SUM(versements.montant_verse), 0)
-                - COALESCE(SUM(depenses.montant), 0)
-                - COALESCE(SUM(reparations.montant), 0) as benefice
-            ")
-            ->leftJoin('versements', function ($j) use ($start, $end) {
-                $j->on('motos.id', '=', 'versements.moto_id')
-                    ->whereBetween('versements.date_versement', [$start, $end]);
-            })
-            ->leftJoin('depenses', function ($j) use ($start, $end) {
-                $j->on('motos.id', '=', 'depenses.moto_id')
-                    ->whereBetween('depenses.date_depense', [$start, $end]);
-            })
-            ->leftJoin('reparations', function ($j) use ($start, $end) {
-                $j->on('motos.id', '=', 'reparations.moto_id')
-                    ->whereBetween('reparations.date_reparation', [$start, $end]);
-            })
-            ->groupBy('motos.id', 'motos.immatriculation')
-            ->orderByDesc('benefice')
-            ->limit(10)
-            ->get();
+            ->selectRaw('(SELECT COALESCE(SUM(v.montant_verse), 0) FROM versements v WHERE v.moto_id = motos.id) as revenus')
+            ->selectRaw('(SELECT COALESCE(SUM(d.montant), 0) FROM depenses d WHERE d.moto_id = motos.id) as depenses_total')
+            ->selectRaw('(SELECT COALESCE(SUM(r.montant), 0) FROM reparations r WHERE r.moto_id = motos.id) as reparations_total')
+            ->get()
+            ->map(fn($m) => [
+                'id' => $m->id,
+                'immatriculation' => $m->immatriculation,
+                'benefice' => (float) $m->revenus - (float) $m->depenses_total - (float) $m->reparations_total,
+            ])
+            ->sortByDesc('benefice')
+            ->take(10)
+            ->values();
 
         $topConducteurs = Conducteur::query()
             ->select('conducteurs.id', 'conducteurs.nom', 'conducteurs.prenom')
             ->selectRaw('COALESCE(SUM(versements.montant_verse), 0) as score')
-            ->leftJoin('versements', function ($j) use ($start, $end) {
-                $j->on('conducteurs.id', '=', 'versements.conducteur_id')
-                    ->whereBetween('versements.date_versement', [$start, $end]);
-            })
+            ->leftJoin('versements', 'conducteurs.id', '=', 'versements.conducteur_id')
             ->groupBy('conducteurs.id', 'conducteurs.nom', 'conducteurs.prenom')
             ->orderByDesc('score')
             ->limit(10)
@@ -426,11 +430,17 @@ class DashboardService
     // Résumé des versements par moto + total global
     // ------------------------------------------------------------
 
+    /**
+     * FIX : idem que graphiques() — plus de filtre par période. $start/
+     * $end restent acceptés (signature/appels inchangés) mais ne sont
+     * plus utilisés pour filtrer les versements : on remonte tous les
+     * versements de toutes les motos, sans exception, comme demandé.
+     */
     public function versementsResume($start, $end)
     {
-        $key = "dashboard:versements_resume:" . md5($start . $end);
+        $key = "dashboard:versements_resume:all";
 
-        return Cache::remember($key, self::TTL, function () use ($start, $end) {
+        return Cache::remember($key, self::TTL, function () {
             $parMoto = Moto::query()
                 ->select('motos.id', 'motos.immatriculation', 'motos.modele')
                 // FIX : "COUNT(...) FILTER (WHERE ...)" est PostgreSQL-only.
@@ -441,10 +451,7 @@ class DashboardService
                     COALESCE(SUM(versements.reste_a_payer), 0) as total_reste,
                     SUM(CASE WHEN versements.en_retard THEN 1 ELSE 0 END) as nb_retards
                 ")
-                ->leftJoin('versements', function ($join) use ($start, $end) {
-                    $join->on('motos.id', '=', 'versements.moto_id')
-                        ->whereBetween('versements.date_versement', [$start, $end]);
-                })
+                ->leftJoin('versements', 'motos.id', '=', 'versements.moto_id')
                 ->groupBy('motos.id', 'motos.immatriculation', 'motos.modele')
                 ->orderByDesc('total_verse')
                 ->get()
