@@ -1,20 +1,16 @@
-.PHONY: up up-full down build bash migrate fresh logs test key
+.PHONY: up up-mail up-full down build bash migrate fresh logs test key
 
-## Démarre l'app + nginx (utilise Neon comme base de données)
+## Démarre app + nginx + mysql + phpmyadmin (stack complet par défaut)
 up:
 	docker compose up -d
 
-## Démarre tout, y compris postgres local + redis + worker de queue
+## + Mailpit (capture des emails envoyés par Laravel)
+up-mail:
+	docker compose --profile mail up -d
+
+## Démarre absolument tout (mail + redis + queue + postgres alternatif)
 up-full:
-	docker compose --profile local-db --profile redis --profile queue up -d
-
-## phpMyAdmin branché sur un MySQL conteneurisé (http://localhost:8080)
-up-mysql:
-	docker compose --profile local-mysql --profile phpmyadmin up -d
-
-## phpMyAdmin branché sur le MySQL de l'hôte (nécessite PMA_HOST=host.docker.internal dans .env)
-up-phpmyadmin:
-	docker compose --profile phpmyadmin up -d
+	docker compose --profile mail --profile redis --profile queue --profile local-postgres up -d
 
 down:
 	docker compose down

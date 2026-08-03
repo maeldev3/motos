@@ -14,6 +14,9 @@ services:
       - ./:/var/www/html
     env_file:
       - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
     networks:
       - fleetmoto
 
@@ -25,12 +28,83 @@ services:
     container_name: fleetmoto_nginx
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-8000}:80"
+      - "${APP_PORT:-7490}:80"
     volumes:
       - ./:/var/www/html:ro
       - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
     depends_on:
       - app
+    networks:
+      - fleetmoto
+
+  # ------------------------------------------------------------------
+  # MySQL — base de données par défaut du stack local.
+  # Démarre automatiquement avec `docker compose up`. En ligne (VPS,
+  # Railway, etc.) tu pourras soit garder ce conteneur, soit basculer
+  # sur une base managée (Neon/PlanetScale/RDS) en changeant juste
+  # DB_CONNECTION + DB_HOST dans .env, sans toucher au reste du stack.
+  # ------------------------------------------------------------------
+  mysql:
+    image: mysql:8.4
+    container_name: fleetmoto_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-moto_api}
+      MYSQL_USER: ${DB_USERNAME:-ismael}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-Dev@2026Mysql!}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-Root@2026!}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - fleetmoto_mysqldata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-Root@2026!}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+    networks:
+      - fleetmoto
+
+  # ------------------------------------------------------------------
+  # phpMyAdmin — interface web pour administrer MySQL.
+  # Actif par défaut, branché sur le conteneur "mysql" ci-dessus.
+  # Interface : http://localhost:7489
+  # ------------------------------------------------------------------
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    container_name: fleetmoto_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: ${DB_USERNAME:-root}
+      PMA_PASSWORD: ${DB_PASSWORD:-Root@2026!}
+      UPLOAD_LIMIT: 20M
+    ports:
+      - "${PHPMYADMIN_PORT:-7489}:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - fleetmoto
+
+  # ------------------------------------------------------------------
+  # Mailpit — capture les emails envoyés par Laravel (reset password,
+  # notifications…) sans jamais les envoyer pour de vrai. Pratique en
+  # local pour vérifier le contenu des emails.
+  # UI : http://localhost:1089   |   SMTP : mailpit:1025
+  # Mets dans .env : MAIL_HOST=mailpit / MAIL_PORT=1025
+  # docker compose --profile mail up -d
+  # ------------------------------------------------------------------
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: fleetmoto_mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_UI_PORT:-1089}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+    profiles: ["mail"]
     networks:
       - fleetmoto
 
@@ -75,10 +149,9 @@ services:
       - fleetmoto
 
   # ------------------------------------------------------------------
-  # Base de données LOCALE (optionnelle).
-  # Le projet utilise Neon (PostgreSQL cloud) par défaut via DATABASE_URL,
-  # donc ce service n'est utile QUE si vous voulez travailler 100% offline.
-  # docker compose --profile local-db up -d
+  # Postgres/Neon local (optionnel — seulement si tu veux tester en
+  # 100% offline avec Postgres plutôt que MySQL).
+  # docker compose --profile local-postgres up -d
   # ------------------------------------------------------------------
   postgres:
     image: postgres:16-alpine
@@ -92,68 +165,7 @@ services:
       - "5432:5432"
     volumes:
       - fleetmoto_pgdata:/var/lib/postgresql/data
-    profiles: ["local-db"]
-    networks:
-      - fleetmoto
-
-  # ------------------------------------------------------------------
-  # MySQL LOCAL (optionnel — conteneurisé).
-  # Ton .env actif utilise DB_CONNECTION=mysql avec DB_HOST=127.0.0.1,
-  # ce qui vise MySQL installé sur ta machine hôte, PAS un conteneur.
-  # Si tu préfères containeriser MySQL plutôt que d'utiliser celui de
-  # l'hôte, active ce service ET mets DB_HOST=mysql dans ton .env.
-  # docker compose --profile local-mysql up -d
-  # ------------------------------------------------------------------
-  mysql:
-    image: mysql:8.4
-    container_name: fleetmoto_mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-moto_api}
-      MYSQL_USER: ${DB_USERNAME:-ismael}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-Dev@2026Mysql!}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-Root@2026!}
-    ports:
-      - "3306:3306"
-    volumes:
-      - fleetmoto_mysqldata:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-Root@2026!}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    profiles: ["local-mysql"]
-    networks:
-      - fleetmoto
-
-  # ------------------------------------------------------------------
-  # phpMyAdmin — interface web pour administrer MySQL.
-  # Profil indépendant : par défaut il pointe sur le conteneur "mysql"
-  # (PMA_HOST=mysql). Pour l'utiliser avec le MySQL de l'HÔTE
-  # (celui que .env vise via 127.0.0.1) au lieu d'un conteneur, mets
-  # dans .env : PMA_HOST=host.docker.internal
-  #
-  #   MySQL conteneurisé : docker compose --profile local-mysql --profile phpmyadmin up -d
-  #   MySQL de l'hôte     : docker compose --profile phpmyadmin up -d   (+ PMA_HOST=host.docker.internal)
-  #
-  # Interface disponible sur http://localhost:8080
-  # ------------------------------------------------------------------
-  phpmyadmin:
-    image: phpmyadmin:5.2
-    container_name: fleetmoto_phpmyadmin
-    restart: unless-stopped
-    environment:
-      PMA_HOST: ${PMA_HOST:-mysql}
-      PMA_PORT: ${PMA_PORT:-3306}
-      PMA_USER: ${DB_USERNAME:-root}
-      PMA_PASSWORD: ${DB_PASSWORD:-Root@2026!}
-      UPLOAD_LIMIT: 20M
-    ports:
-      - "${PHPMYADMIN_PORT:-8080}:80"
-    extra_hosts:
-      # Permet à phpMyAdmin de joindre le MySQL de l'hôte Linux si besoin
-      - "host.docker.internal:host-gateway"
-    profiles: ["phpmyadmin"]
+    profiles: ["local-postgres"]
     networks:
       - fleetmoto
 

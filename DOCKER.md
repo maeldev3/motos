@@ -1,7 +1,8 @@
 # 🐳 Docker — FleetMoto API
 
 Cette configuration permet de lancer l'API Laravel de gestion de flotte de
-motos dans un environnement conteneurisé, propre et reproductible.
+motos dans un environnement conteneurisé, propre, reproductible et testable
+en local avant un déploiement en ligne.
 
 ## Structure
 
@@ -15,104 +16,112 @@ docker/
     └── conf.d/
         └── default.conf  # Vhost Nginx → PHP-FPM
 docker-compose.yml
+.env.docker.example       # Modèle de .env prêt pour Docker
 .dockerignore
 Makefile
 ```
 
 ## Architecture
 
-| Service      | Rôle                                     | Actif par défaut |
-|--------------|-------------------------------------------|:-----------------:|
-| `app`        | PHP-FPM 8.3 (Laravel)                     | ✅ |
-| `nginx`      | Serveur web, expose le port `8000`        | ✅ |
-| `postgres`   | Base de données locale Postgres (offline) | ⛔ profile `local-db` |
-| `mysql`      | Base de données locale MySQL (offline)    | ⛔ profile `local-mysql` |
-| `phpmyadmin` | Interface web d'admin MySQL, port `8080`  | ⛔ profile `phpmyadmin` |
-| `redis`      | Cache / queue                             | ⛔ profile `redis` |
-| `queue`      | Worker `php artisan queue:work`           | ⛔ profile `queue` |
+| Service      | Rôle                                       | Actif par défaut |
+|--------------|---------------------------------------------|:-----------------:|
+| `app`        | PHP-FPM 8.3 (Laravel)                        | ✅ |
+| `nginx`      | Serveur web, expose le port `7490`           | ✅ |
+| `mysql`      | Base de données MySQL 8.4                    | ✅ |
+| `phpmyadmin` | Interface web d'admin MySQL, port `7489`     | ✅ |
+| `mailpit`    | Capture des emails envoyés (dev), port `1089`| ⛔ profile `mail` |
+| `redis`      | Cache / queue                                | ⛔ profile `redis` |
+| `queue`      | Worker `php artisan queue:work`              | ⛔ profile `queue` |
+| `postgres`   | Alternative Postgres locale (offline)        | ⛔ profile `local-postgres` |
 
-Le projet est câblé par défaut sur **Neon (PostgreSQL cloud)** via
-`DATABASE_URL` dans le `.env` : aucun conteneur de base de données n'est donc
-requis pour démarrer. Les services `postgres` / `redis` / `queue` sont
-fournis en option (profils Docker Compose) pour un développement 100% local.
+Le stack `app + nginx + mysql + phpmyadmin` démarre **automatiquement**
+avec un simple `docker compose up`, pour un environnement de test local
+fonctionnel sans rien configurer sur ta machine hôte. `app` attend que
+`mysql` soit réellement prêt (healthcheck) avant de lancer les migrations.
 
-## Démarrage rapide
+## Démarrage rapide (local)
 
 ```bash
-# 1. Copier le .env (déjà fourni dans le projet)
-cp .env.example .env
+# 1. Utiliser le .env prêt pour Docker (DB_HOST=mysql, pas 127.0.0.1 !)
+cp .env.docker.example .env
 
-# 2. Lancer app + nginx (utilise Neon)
+# 2. Lancer tout le stack
 docker compose up -d --build
 
-# L'API est disponible sur http://localhost:8000
+# 3. Vérifier que tout tourne
+docker compose ps
 ```
 
-## Mode 100% local (sans Neon)
+- API : http://localhost:7490
+- phpMyAdmin : http://localhost:7489 (user/password = `DB_USERNAME`/`DB_PASSWORD` du `.env`)
+
+## ⚠️ Erreur fréquente : 502 Bad Gateway
+
+Si nginx renvoie 502, c'est presque toujours parce que `app` a crashé au
+démarrage (souvent une connexion DB impossible pendant `php artisan
+migrate`). Vérifie :
 
 ```bash
-docker compose --profile local-db --profile redis up -d
+docker compose logs app
+docker compose ps        # "app" doit être "Up", pas en boucle de redémarrage
 ```
 
-Puis, dans `.env` :
+**Cause n°1** : `DB_HOST=127.0.0.1` dans le `.env`. À l'intérieur d'un
+conteneur, `127.0.0.1` désigne le conteneur lui-même — jamais ta machine
+hôte ni un autre conteneur. Utilise `DB_HOST=mysql` (nom du service Docker)
+pour te connecter au conteneur MySQL du même stack.
+
+## Emails en local (Mailpit)
+
+```bash
+docker compose --profile mail up -d
+# ou : make up-mail
 ```
+
+Dans `.env` : `MAIL_HOST=mailpit`, `MAIL_PORT=1025`. Tous les emails
+envoyés par Laravel sont capturés (jamais réellement envoyés) et visibles
+sur **http://localhost:1089**.
+
+## Basculer vers Neon (PostgreSQL cloud) au lieu de MySQL
+
+Utile pour tester exactement la config que tu utiliseras en ligne :
+
+```env
 DB_CONNECTION=pgsql
-DB_HOST=postgres
-DB_PORT=5432
-DB_DATABASE=moto_api
-DB_USERNAME=postgres
-DB_PASSWORD=secret
-CACHE_STORE=redis
-QUEUE_CONNECTION=redis
-REDIS_HOST=redis
+DATABASE_URL=postgresql://neondb_owner:xxxx@ep-xxxx.neon.tech/neondb?sslmode=require
 ```
 
-## phpMyAdmin
+Tu peux alors éteindre `mysql`/`phpmyadmin` (`docker compose stop mysql
+phpmyadmin`) : Laravel se connectera directement à Neon, en local comme
+en production, sans rien changer d'autre.
 
-Ton `.env` actif utilise `DB_CONNECTION=mysql` avec `DB_HOST=127.0.0.1`, ce
-qui vise le MySQL installé sur ta machine **hôte** — pas un conteneur.
-phpMyAdmin peut se brancher sur les deux :
+## Passage en ligne (production)
 
-**Option A — MySQL de l'hôte (celui déjà configuré dans `.env`)**
+Les points à adapter au moment du déploiement :
 
-```bash
-# Dans .env, ajouter :
-PMA_HOST=host.docker.internal
-
-docker compose --profile phpmyadmin up -d
-# ou : make up-phpmyadmin
-```
-
-⚠️ `host.docker.internal` fonctionne nativement sur Docker Desktop
-(Mac/Windows). Sur Linux, le mapping `extra_hosts: host-gateway` déjà
-présent dans le compose s'en charge automatiquement (Docker Engine ≥ 20.10).
-
-**Option B — MySQL conteneurisé (isolé, ne touche pas au MySQL de l'hôte)**
-
-```bash
-docker compose --profile local-mysql --profile phpmyadmin up -d
-# ou : make up-mysql
-```
-
-Dans ce cas, mets aussi `DB_HOST=mysql` dans `.env` pour que Laravel (dans
-le conteneur `app`) se connecte au conteneur MySQL plutôt qu'à l'hôte.
-
-Interface disponible sur **http://localhost:8080** (identifiants : ceux de
-`DB_USERNAME` / `DB_PASSWORD` dans `.env`, ou `root` / `MYSQL_ROOT_PASSWORD`
-pour un accès complet).
+1. **Base de données** : soit tu gardes le conteneur `mysql` sur ton VPS
+   (avec un volume persistant, déjà prévu), soit tu bascules sur une base
+   managée (Neon, PlanetScale, RDS…) en ne changeant que `DB_CONNECTION` /
+   `DB_HOST` / `DATABASE_URL`.
+2. **`.env`** : mets `APP_ENV=production`, `APP_DEBUG=false`, régénère
+   `APP_KEY`, et ne commite jamais ce fichier.
+3. **`docker-compose.yml`** : retire `phpmyadmin` de l'exposition publique
+   (ou mets-le derrière une authentification / VPN) — il ne devrait pas
+   être accessible depuis Internet sans protection.
+4. **`nginx`** : ajoute HTTPS (Let's Encrypt / reverse proxy Traefik ou
+   Caddy devant) plutôt que d'exposer le port 80/7490 brut.
 
 ## Commandes utiles (via Makefile)
 
 ```bash
-make up             # démarre app + nginx
-make up-full        # démarre tout (db locale + redis + queue)
-make up-mysql       # + phpMyAdmin branché sur MySQL conteneurisé
-make up-phpmyadmin  # + phpMyAdmin branché sur le MySQL de l'hôte
+make up             # démarre app + nginx + mysql + phpmyadmin
+make up-mail        # + Mailpit
+make up-full        # + mail + redis + queue + postgres alternatif
 make bash           # shell dans le conteneur app
-make migrate     # php artisan migrate
-make fresh       # migrate:fresh --seed
-make logs        # logs en direct du conteneur app
-make test        # php artisan test
+make migrate        # php artisan migrate
+make fresh          # migrate:fresh --seed
+make logs           # logs en direct du conteneur app
+make test           # php artisan test
 ```
 
 ## Points clés de la config
@@ -120,10 +129,11 @@ make test        # php artisan test
 - **Build multi-stage** : les dépendances Composer sont installées dans une
   image dédiée puis copiées dans l'image finale (image plus légère, pas de
   Composer en prod).
-- **Extensions PHP** : `pdo_pgsql`/`pgsql` (Neon), `pdo_mysql` (dev local),
+- **Extensions PHP** : `pdo_pgsql`/`pgsql` (Neon), `pdo_mysql` (MySQL),
   `bcmath`, `gd`, `intl`, `opcache`… alignées sur les besoins du projet.
-- **Entrypoint idempotent** : génère la clé d'app si absente, joue les
-  migrations, régénère les caches en production.
-- **Profils Docker Compose** : les services optionnels (`postgres`, `redis`,
-  `queue`) ne tournent pas par défaut, évitant de gaspiller des ressources
-  quand ils ne sont pas utilisés.
+- **Healthcheck MySQL + `depends_on: condition: service_healthy`** : `app`
+  ne démarre ses migrations qu'une fois MySQL réellement prêt à accepter
+  des connexions — évite le crash-loop / 502 au premier démarrage.
+- **Profils Docker Compose** : les services optionnels (`mailpit`, `redis`,
+  `queue`, `postgres`) ne tournent pas par défaut, évitant de gaspiller des
+  ressources quand ils ne sont pas utilisés.
