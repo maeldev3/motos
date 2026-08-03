@@ -53,7 +53,7 @@ class VersementService
             ->latest('date_versement')
             ->paginate(
                 min(
-                    (int) ($filters['per_page'] ?? 10),
+                    (int) ($filters['per_page'] ?? 20),
                     100
                 )
             );
