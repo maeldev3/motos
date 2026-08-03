@@ -25,7 +25,7 @@ Route::get('affectations', [AffectationController::class, 'index']);
 // Routes protégées (Sanctum)
 // ---------------------------------------------------------------------
 Route::middleware('auth:sanctum')->group(function () {
-
+    // Route::get('health', fn () => response()->json(['status' => 'ok']));
     Route::prefix('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('me', [AuthController::class, 'me']);

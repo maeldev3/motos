@@ -26,7 +26,12 @@ class Conducteur extends Model
 
     public function moto()
     {
-        return $this->belongsTo(Moto::class);
+        return $this->belongsTo(Moto::class)
+            ->select([
+                'id',
+                'immatriculation',
+                'modele'
+            ]);
     }
 
     public function affectations()

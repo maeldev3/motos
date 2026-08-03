@@ -13,7 +13,7 @@ class ConducteurController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Conducteur::query()->with('moto');
+        $query = Conducteur::select('id','nom', 'prenom', 'sexe', 'date_naissance', 'adresse', 'telephone','moto_id','statut')->query()->with('moto');
 
         if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
