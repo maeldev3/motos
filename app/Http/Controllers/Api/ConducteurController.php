@@ -88,12 +88,65 @@ class ConducteurController extends Controller
     {
         $conducteur->load([
             'moto:id,immatriculation,modele',
-            'affectations.moto',
-            'avances',
-            'absences',
+    
+            // 'affectations' => function ($query) {
+            //     $query->select(
+            //         'id',
+            //         'conducteur_id',
+            //         'moto_id',
+            //         'date_debut',
+            //         'date_fin',
+            //         'active'
+            //     )->latest();
+            // },
+    
+            // 'affectations.moto:id,immatriculation,marque,modele',
+    
+            // 'avances' => function ($query) {
+            //     $query->select(
+            //         'id',
+            //         'conducteur_id',
+            //         'montant',
+            //         'motif',
+            //         'date_avance'
+            //     )->latest();
+            // },
+    
+            // 'absences' => function ($query) {
+            //     $query->select(
+            //         'id',
+            //         'conducteur_id',
+            //         'date_absence',
+            //         'motif',
+            //         'statut'
+            //     )->latest();
+            // },
         ]);
     
-        return $this->ok($conducteur);
+        return $this->ok(
+            $conducteur->only([
+                'id',
+                'nom',
+                'prenom',
+                'telephone',
+                'sexe',
+                'date_naissance',
+                'adresse',
+                'cin',
+                'numero_permis',
+                'date_embauche',
+                'photo',
+                'contact_urgence_nom',
+                'contact_urgence_telephone',
+                'statut',
+                'moto_id',
+            ]) + [
+                // 'moto'         => $conducteur->moto,
+                // 'affectations' => $conducteur->affectations,
+                // 'avances'      => $conducteur->avances,
+                // 'absences'     => $conducteur->absences,
+            ]
+        );
     }
 
     public function update(Request $request, Conducteur $conducteur)
