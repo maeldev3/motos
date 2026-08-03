@@ -86,8 +86,13 @@ class ConducteurController extends Controller
 
     public function show(Conducteur $conducteur)
     {
-        $conducteur->load(['moto', 'affectations.moto', 'avances', 'absences']);
-
+        $conducteur->load([
+            'moto:id,immatriculation,modele',
+            'affectations.moto',
+            'avances',
+            'absences',
+        ]);
+    
         return $this->ok($conducteur);
     }
 
