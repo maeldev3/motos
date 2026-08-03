@@ -11,24 +11,45 @@ use Illuminate\Support\Facades\Validator;
 
 class ConducteurController extends Controller
 {
-    public function index(Request $request)
+        public function index(Request $request)
     {
-        $query = Conducteur::select('id','nom', 'prenom', 'sexe', 'date_naissance', 'adresse', 'telephone','moto_id','statut')->query()->with('moto');
+        $query = Conducteur::query()
+            ->select([
+                'id',
+                'nom',
+                'prenom',
+                'sexe',
+                'date_naissance',
+                'adresse',
+                'telephone',
+                'cin',
+                'moto_id',
+                'statut',
+                'created_at'
+            ])
+            ->with([
+                'moto:id,immatriculation,marque,modele'
+            ]);
 
         if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
         }
+
         if ($request->filled('recherche')) {
-            $q = $request->recherche;
-            $query->where(function ($qr) use ($q) {
-                $qr->where('nom', 'like', "%{$q}%")
-                    ->orWhere('prenom', 'like', "%{$q}%")
-                    ->orWhere('telephone', 'like', "%{$q}%")
-                    ->orWhere('cin', 'like', "%{$q}%");
+            $search = $request->recherche;
+
+            $query->where(function ($q) use ($search) {
+                $q->where('nom', 'ILIKE', "%{$search}%")
+                ->orWhere('prenom', 'ILIKE', "%{$search}%")
+                ->orWhere('telephone', 'ILIKE', "%{$search}%")
+                ->orWhere('cin', 'ILIKE', "%{$search}%");
             });
         }
 
-        return $this->ok($query->latest()->paginate($request->get('per_page', 20)));
+        return $this->ok(
+            $query->latest('created_at')
+                ->paginate($request->integer('per_page', 20))
+        );
     }
 
     public function store(Request $request)
