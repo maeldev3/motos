@@ -1,0 +1,167 @@
+services:
+  # ------------------------------------------------------------------
+  # PHP-FPM — cœur applicatif Laravel
+  # ------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: production
+    container_name: fleetmoto_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    env_file:
+      - .env
+    networks:
+      - fleetmoto
+
+  # ------------------------------------------------------------------
+  # Nginx — serveur web devant PHP-FPM
+  # ------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: fleetmoto_nginx
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - app
+    networks:
+      - fleetmoto
+
+  # ------------------------------------------------------------------
+  # Worker de queue (optionnel — activer si QUEUE_CONNECTION != sync)
+  # docker compose --profile queue up -d
+  # ------------------------------------------------------------------
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: production
+    container_name: fleetmoto_queue
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: php artisan queue:work --tries=3 --backoff=5 --sleep=3
+    volumes:
+      - ./:/var/www/html
+    env_file:
+      - .env
+    depends_on:
+      - app
+    profiles: ["queue"]
+    networks:
+      - fleetmoto
+
+  # ------------------------------------------------------------------
+  # Redis (optionnel — cache/queue). Aujourd'hui le .env utilise
+  # CACHE_STORE=file et QUEUE_CONNECTION=sync, donc inactif par défaut.
+  # docker compose --profile redis up -d
+  # ------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: fleetmoto_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - fleetmoto_redis_data:/data
+    profiles: ["redis"]
+    networks:
+      - fleetmoto
+
+  # ------------------------------------------------------------------
+  # Base de données LOCALE (optionnelle).
+  # Le projet utilise Neon (PostgreSQL cloud) par défaut via DATABASE_URL,
+  # donc ce service n'est utile QUE si vous voulez travailler 100% offline.
+  # docker compose --profile local-db up -d
+  # ------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: fleetmoto_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-moto_api}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - fleetmoto_pgdata:/var/lib/postgresql/data
+    profiles: ["local-db"]
+    networks:
+      - fleetmoto
+
+  # ------------------------------------------------------------------
+  # MySQL LOCAL (optionnel — conteneurisé).
+  # Ton .env actif utilise DB_CONNECTION=mysql avec DB_HOST=127.0.0.1,
+  # ce qui vise MySQL installé sur ta machine hôte, PAS un conteneur.
+  # Si tu préfères containeriser MySQL plutôt que d'utiliser celui de
+  # l'hôte, active ce service ET mets DB_HOST=mysql dans ton .env.
+  # docker compose --profile local-mysql up -d
+  # ------------------------------------------------------------------
+  mysql:
+    image: mysql:8.4
+    container_name: fleetmoto_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-moto_api}
+      MYSQL_USER: ${DB_USERNAME:-ismael}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-Dev@2026Mysql!}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-Root@2026!}
+    ports:
+      - "3306:3306"
+    volumes:
+      - fleetmoto_mysqldata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-Root@2026!}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    profiles: ["local-mysql"]
+    networks:
+      - fleetmoto
+
+  # ------------------------------------------------------------------
+  # phpMyAdmin — interface web pour administrer MySQL.
+  # Profil indépendant : par défaut il pointe sur le conteneur "mysql"
+  # (PMA_HOST=mysql). Pour l'utiliser avec le MySQL de l'HÔTE
+  # (celui que .env vise via 127.0.0.1) au lieu d'un conteneur, mets
+  # dans .env : PMA_HOST=host.docker.internal
+  #
+  #   MySQL conteneurisé : docker compose --profile local-mysql --profile phpmyadmin up -d
+  #   MySQL de l'hôte     : docker compose --profile phpmyadmin up -d   (+ PMA_HOST=host.docker.internal)
+  #
+  # Interface disponible sur http://localhost:8080
+  # ------------------------------------------------------------------
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    container_name: fleetmoto_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: ${PMA_HOST:-mysql}
+      PMA_PORT: ${PMA_PORT:-3306}
+      PMA_USER: ${DB_USERNAME:-root}
+      PMA_PASSWORD: ${DB_PASSWORD:-Root@2026!}
+      UPLOAD_LIMIT: 20M
+    ports:
+      - "${PHPMYADMIN_PORT:-8080}:80"
+    extra_hosts:
+      # Permet à phpMyAdmin de joindre le MySQL de l'hôte Linux si besoin
+      - "host.docker.internal:host-gateway"
+    profiles: ["phpmyadmin"]
+    networks:
+      - fleetmoto
+
+networks:
+  fleetmoto:
+    driver: bridge
+
+volumes:
+  fleetmoto_pgdata:
+  fleetmoto_redis_data:
+  fleetmoto_mysqldata:
