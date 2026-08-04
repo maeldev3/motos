@@ -64,7 +64,7 @@ class DashboardService
                 'graphiques'           => $this->graphiques($start, $end),
                 'motos_details'        => $this->motosDetails(),
                 'conducteurs_details'  => $this->conducteursDetails(),
-                'conducteurs_evolution'=> $this->conducteursEvolution($start, $end),
+                'conducteurs_evolution' => $this->conducteursEvolution($start, $end),
                 'motos_performance'    => $this->motosPerformance($start, $end),
                 'versements_resume'    => $this->versementsResume($start, $end),
                 'alertes'              => $this->alertes(),
@@ -104,11 +104,11 @@ class DashboardService
 
         $avances = (float) Avance::where('type', 'avance')->sum('solde');
         $provisions = (float) Avance::where('type', 'provision')->sum('solde');
-        
+
         $prevDuration = $start->diffInDays($end);
         $prevEnd = $start->copy()->subDay();
         $prevStart = $prevEnd->copy()->subDays($prevDuration);
-        
+
         $revenusPrec = (float) Versement::whereBetween('date_versement', [$prevStart, $prevEnd])->sum('montant_verse');
         $beneficePrec = $revenusPrec - ((float) Depense::whereBetween('date_depense', [$prevStart, $prevEnd])->sum('montant')
             + (float) Reparation::whereBetween('date_reparation', [$prevStart, $prevEnd])->sum('montant'));
@@ -243,11 +243,11 @@ class DashboardService
     private function motosDetails()
     {
         return Moto::with([
-                'versements:id,moto_id,date_versement,montant_verse',
-                'depenses:id,moto_id,montant',
-                'reparations:id,moto_id,montant',
-                'affectationActive.conducteur:id,nom,prenom',
-            ])
+            'versements:id,moto_id,date_versement,montant_verse',
+            'depenses:id,moto_id,montant',
+            'reparations:id,moto_id,montant',
+            'affectationActive.conducteur:id,nom,prenom',
+        ])
             ->get()
             ->map(function ($moto) {
                 $revenusGlobal = (float) $moto->versements->sum('montant_verse');
@@ -285,11 +285,11 @@ class DashboardService
     private function conducteursDetails()
     {
         return Conducteur::with([
-                'absences:id,conducteur_id,nombre_jours,retenue',
-                'versements:id,conducteur_id,montant_verse',
-                'moto:id,immatriculation',
-                'affectations' => fn($q) => $q->where('active', true)->with('moto:id,immatriculation'),
-            ])
+            'absences:id,conducteur_id,nombre_jours,retenue',
+            'versements:id,conducteur_id,montant_verse',
+            'moto:id,immatriculation',
+            'affectations' => fn($q) => $q->where('active', true)->with('moto:id,immatriculation'),
+        ])
             ->get()
             ->map(function ($conducteur) {
                 $totalAbsences = (int) $conducteur->absences->sum('nombre_jours');
@@ -322,11 +322,11 @@ class DashboardService
 
         return Cache::remember($key, self::TTL, function () use ($start, $end) {
             return Conducteur::with([
-                    'versements' => fn($q) => $q->whereBetween('date_versement', [$start, $end])->orderBy('date_versement'),
-                    'absences' => fn($q) => $q->whereBetween('date_debut', [$start, $end]),
-                    'moto:id,immatriculation',
-                    'affectations' => fn($q) => $q->where('active', true)->with('moto:id,immatriculation'),
-                ])
+                'versements' => fn($q) => $q->whereBetween('date_versement', [$start, $end])->orderBy('date_versement'),
+                'absences' => fn($q) => $q->whereBetween('date_debut', [$start, $end]),
+                'moto:id,immatriculation',
+                'affectations' => fn($q) => $q->where('active', true)->with('moto:id,immatriculation'),
+            ])
                 ->get()
                 ->map(function ($conducteur) {
                     // FIX : on exclut les versements sans date_versement
@@ -378,11 +378,11 @@ class DashboardService
 
         return Cache::remember($key, self::TTL, function () use ($start, $end) {
             return Moto::with([
-                    'versements' => fn($q) => $q->whereBetween('date_versement', [$start, $end]),
-                    'depenses' => fn($q) => $q->whereBetween('date_depense', [$start, $end]),
-                    'reparations' => fn($q) => $q->whereBetween('date_reparation', [$start, $end]),
-                    'affectationActive.conducteur:id,nom,prenom',
-                ])
+                'versements' => fn($q) => $q->whereBetween('date_versement', [$start, $end]),
+                'depenses' => fn($q) => $q->whereBetween('date_depense', [$start, $end]),
+                'reparations' => fn($q) => $q->whereBetween('date_reparation', [$start, $end]),
+                'affectationActive.conducteur:id,nom,prenom',
+            ])
                 ->get()
                 ->map(function ($moto) {
                     // FIX PRINCIPAL : on écarte toute ligne dont la date est
@@ -403,7 +403,7 @@ class DashboardService
                         ? trim($moto->affectationActive->conducteur->nom . ' ' . $moto->affectationActive->conducteur->prenom)
                         : null;
 
-                        $periodes = collect($versements->map(fn($v) => $v->date_versement->format('Y-m')))
+                    $periodes = collect($versements->map(fn($v) => $v->date_versement->format('Y-m')))
                         ->merge($depenses->map(fn($d) => $d->date_depense->format('Y-m')))
                         ->merge($reparations->map(fn($r) => $r->date_reparation->format('Y-m')))
                         ->unique()->sort()->values();
@@ -450,6 +450,49 @@ class DashboardService
      * plus utilisés pour filtrer les versements : on remonte tous les
      * versements de toutes les motos, sans exception, comme demandé.
      */
+    // public function versementsResume($start, $end)
+    // {
+    //     $key = "dashboard:versements_resume:all";
+
+    //     return Cache::remember($key, self::TTL, function () {
+    //         $parMoto = Moto::query()
+    //             ->select('motos.id', 'motos.immatriculation', 'motos.modele')
+    //             // FIX : "COUNT(...) FILTER (WHERE ...)" est PostgreSQL-only.
+    //             // Remplacé par SUM(CASE WHEN ... THEN 1 ELSE 0 END), portable.
+    //             ->selectRaw("
+    //                 COALESCE(SUM(versements.montant_attendu), 0) as total_attendu,
+    //                 COALESCE(SUM(versements.montant_verse), 0) as total_verse,
+    //                 COALESCE(SUM(versements.reste_a_payer), 0) as total_reste,
+    //                 SUM(CASE WHEN versements.en_retard THEN 1 ELSE 0 END) as nb_retards
+    //             ")
+    //             ->leftJoin('versements', 'motos.id', '=', 'versements.moto_id')
+    //             ->groupBy('motos.id', 'motos.immatriculation', 'motos.modele')
+    //             ->orderByDesc('total_verse')
+    //             ->get()
+    //             ->map(fn($m) => [
+    //                 'id' => $m->id,
+    //                 'immatriculation' => $m->immatriculation,
+    //                 'modele' => $m->modele,
+    //                 'total_attendu' => (float) $m->total_attendu,
+    //                 'total_verse' => (float) $m->total_verse,
+    //                 'total_reste' => (float) $m->total_reste,
+    //                 'nb_retards' => (int) $m->nb_retards,
+    //             ]);
+
+    //         $totaux = [
+    //             'total_attendu' => (float) $parMoto->sum('total_attendu'),
+    //             'total_verse' => (float) $parMoto->sum('total_verse'),
+    //             'total_reste' => (float) $parMoto->sum('total_reste'),
+    //             'nb_retards' => (int) $parMoto->sum('nb_retards'),
+    //         ];
+
+    //         return [
+    //             'par_moto' => $parMoto,
+    //             'totaux' => $totaux,
+    //         ];
+    //     });
+    // }
+
     public function versementsResume($start, $end)
     {
         $key = "dashboard:versements_resume:all";
@@ -457,14 +500,12 @@ class DashboardService
         return Cache::remember($key, self::TTL, function () {
             $parMoto = Moto::query()
                 ->select('motos.id', 'motos.immatriculation', 'motos.modele')
-                // FIX : "COUNT(...) FILTER (WHERE ...)" est PostgreSQL-only.
-                // Remplacé par SUM(CASE WHEN ... THEN 1 ELSE 0 END), portable.
                 ->selectRaw("
-                    COALESCE(SUM(versements.montant_attendu), 0) as total_attendu,
-                    COALESCE(SUM(versements.montant_verse), 0) as total_verse,
-                    COALESCE(SUM(versements.reste_a_payer), 0) as total_reste,
-                    SUM(CASE WHEN versements.en_retard THEN 1 ELSE 0 END) as nb_retards
-                ")
+                COALESCE(SUM(versements.montant_attendu), 0) as total_attendu,
+                COALESCE(SUM(versements.montant_verse), 0) as total_verse,
+                COALESCE(SUM(versements.reste_a_payer), 0) as total_reste,
+                SUM(CASE WHEN versements.en_retard THEN 1 ELSE 0 END) as nb_retards
+            ")
                 ->leftJoin('versements', 'motos.id', '=', 'versements.moto_id')
                 ->groupBy('motos.id', 'motos.immatriculation', 'motos.modele')
                 ->orderByDesc('total_verse')
@@ -479,6 +520,30 @@ class DashboardService
                     'nb_retards' => (int) $m->nb_retards,
                 ]);
 
+            // NOUVEAU : même logique côté conducteurs, une seule requête
+            // groupée (pas de N+1, pas de leftJoin multiples).
+            $parConducteur = Conducteur::query()
+                ->select('conducteurs.id', 'conducteurs.nom', 'conducteurs.prenom')
+                ->selectRaw("
+                COALESCE(SUM(versements.montant_attendu), 0) as total_attendu,
+                COALESCE(SUM(versements.montant_verse), 0) as total_verse,
+                COALESCE(SUM(versements.reste_a_payer), 0) as total_reste,
+                SUM(CASE WHEN versements.en_retard THEN 1 ELSE 0 END) as nb_retards
+            ")
+                ->leftJoin('versements', 'conducteurs.id', '=', 'versements.conducteur_id')
+                ->groupBy('conducteurs.id', 'conducteurs.nom', 'conducteurs.prenom')
+                ->orderByDesc('total_verse')
+                ->get()
+                ->map(fn($c) => [
+                    'id' => $c->id,
+                    'nom' => $c->nom,
+                    'prenom' => $c->prenom,
+                    'total_attendu' => (float) $c->total_attendu,
+                    'total_verse' => (float) $c->total_verse,
+                    'total_reste' => (float) $c->total_reste,
+                    'nb_retards' => (int) $c->nb_retards,
+                ]);
+
             $totaux = [
                 'total_attendu' => (float) $parMoto->sum('total_attendu'),
                 'total_verse' => (float) $parMoto->sum('total_verse'),
@@ -488,11 +553,11 @@ class DashboardService
 
             return [
                 'par_moto' => $parMoto,
+                'par_conducteur' => $parConducteur,
                 'totaux' => $totaux,
             ];
         });
     }
-
     // ------------------------------------------------------------
     // Alertes
     // ------------------------------------------------------------

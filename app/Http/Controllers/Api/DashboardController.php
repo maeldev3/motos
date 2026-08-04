@@ -108,18 +108,3 @@ class DashboardController extends Controller
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| routes/api.php — à ajouter (ou remplacer le bloc existant)
-|--------------------------------------------------------------------------
-|
-| Route::prefix('dashboard')->group(function () {
-|     Route::get('/', [DashboardController::class, 'full']);
-|     Route::get('/conducteurs-evolution', [DashboardController::class, 'conducteursEvolution']);
-|     Route::get('/motos-performance', [DashboardController::class, 'motosPerformance']);
-|     Route::get('/versements-resume', [DashboardController::class, 'versementsResume']);
-|     Route::get('/modules', [DashboardController::class, 'modules']);
-|     Route::get('/vehicules-actifs', [DashboardController::class, 'full']); // ou une méthode dédiée si besoin d'un payload plus léger
-| });
-|
-*/
