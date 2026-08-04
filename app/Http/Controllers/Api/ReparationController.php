@@ -80,21 +80,43 @@ class ReparationController extends Controller
 
     public function update(Request $request, Reparation $reparation)
     {
-        $data = $request->validate([
+        $validator = Validator::make($request->all(), [
+            'moto_id' => 'sometimes|required|exists:motos,id',
+            'date_reparation' => 'sometimes|required|date',
+            'type_reparation' => 'sometimes|required|in:vidange,changement_pneus,chaine,batterie,embrayage,moteur,carburateur,freins,suspension,peinture,accident,revision_complete,autres',
             'description' => 'nullable|string',
             'garage' => 'nullable|string',
             'mecanicien' => 'nullable|string',
             'kilometrage' => 'nullable|integer|min:0',
             'pieces_remplacees' => 'nullable|string',
             'montant' => 'sometimes|required|numeric|min:0',
+            'photo_facture' => 'nullable|image|max:4096',
             'observations' => 'nullable|string',
         ]);
 
+        if ($validator->fails()) {
+            return $this->error('Validation échouée', 422, $validator->errors());
+        }
+
+        $data = $validator->validated();
+
+        if ($request->hasFile('photo_facture')) {
+            $data['photo_facture'] = $request->file('photo_facture')->store('factures/reparations', 'public');
+        }
+
+        $ancienMotoId = $reparation->moto_id;
+
         $reparation->update($data);
 
-        return $this->ok($reparation, 'Réparation mise à jour');
-    }
+        // Si la moto a changé, on remet l'ancienne moto disponible et on passe la nouvelle en "en_reparation"
+        if (isset($data['moto_id']) && $data['moto_id'] != $ancienMotoId) {
+            $reparation->moto()->associate($data['moto_id']); // au cas où la relation est encore en cache
+            $reparation->refresh();
+            $reparation->moto->update(['statut' => 'en_reparation']);
+        }
 
+        return $this->ok($reparation->load('moto'), 'Réparation mise à jour');
+    }
     public function destroy(Reparation $reparation)
     {
         $reparation->delete();

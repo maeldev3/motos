@@ -18,10 +18,7 @@ class AvanceController extends Controller
             $request->integer('per_page', 20),
             100
         );
-
-
         $query = Avance::query()
-
             ->select([
                 'id',
                 'conducteur_id',
@@ -31,17 +28,10 @@ class AvanceController extends Controller
                 'solde',
                 'date_octroi'
             ])
-
-
             ->with([
-
                 'conducteur:id,nom,prenom,telephone',
-
                 'remboursements:id,avance_id,montant,date_remboursement'
-
             ]);
-
-
 
         if ($request->filled('conducteur_id')) {
             $query->where(
@@ -50,8 +40,6 @@ class AvanceController extends Controller
             );
         }
 
-
-
         if ($request->filled('type')) {
             $query->where(
                 'type',
@@ -59,14 +47,10 @@ class AvanceController extends Controller
             );
         }
 
-
-
         return $this->ok(
-
             $query
                 ->orderByDesc('date_octroi')
                 ->paginate($perPage)
-
         );
     }
 
@@ -133,9 +117,36 @@ class AvanceController extends Controller
         return $this->created($remboursement, 'Remboursement enregistré');
     }
 
+    public function update(Request $request, Avance $avance)
+    {
+        $validator = Validator::make($request->all(), [
+            'conducteur_id' => 'required|exists:conducteurs,id',
+            'type' => 'required|in:avance,provision',
+            // Le montant ne peut pas descendre sous ce qui a déjà été remboursé,
+            // sinon le solde (montant - montant_rembourse) deviendrait négatif.
+            'montant' => 'required|numeric|min:' . $avance->montant_rembourse,
+            'date_octroi' => 'required|date',
+            'commentaire' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->error('Validation échouée', 422, $validator->errors());
+        }
+
+        $avance->update($validator->validated());
+
+        // show() met en cache l'avance pendant 10 min : il faut invalider cette
+        // entrée sinon l'ancienne version resterait servie après une modification.
+        Cache::forget("avance:{$avance->id}");
+
+        return $this->ok($avance->fresh('conducteur'), 'Avance mise à jour');
+    }
+
     public function destroy(Avance $avance)
     {
         $avance->delete();
+
+        Cache::forget("avance:{$avance->id}");
 
         return $this->ok(null, 'Avance supprimée');
     }
