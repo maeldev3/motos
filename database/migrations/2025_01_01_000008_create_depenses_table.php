@@ -20,51 +20,27 @@ return new class extends Migration {
             $table->string('justificatif')->nullable();
             $table->text('commentaire')->nullable();
             $table->timestamps();
-
-            /*
-                |--------------------------------------------------------------------------
-                | INDEX SIMPLES
-                |--------------------------------------------------------------------------
-                */
-
-                $table->index('moto_id');
-
-                $table->index('date_depense');
-
-                $table->index('categorie');
-
-                $table->index('created_at');
-
-                /*
-                |--------------------------------------------------------------------------
-                | INDEX COMPOSITES
-                |--------------------------------------------------------------------------
-                */
-
-                // Dépenses d'une moto
-                $table->index([
-                    'moto_id',
-                    'date_depense'
-                ]);
-
-                // Dépenses par catégorie
-                $table->index([
-                    'categorie',
-                    'date_depense'
-                ]);
-
-                // Dépenses d'une moto par catégorie
-                $table->index([
-                    'moto_id',
-                    'categorie',
-                    'date_depense'
-                ]);
-
-                // Dashboard mensuel
-                $table->index([
-                    'date_depense',
-                    'categorie'
-                ]);
+            $table->index('moto_id');
+            $table->index('date_depense');
+            $table->index('categorie');
+            $table->index('created_at');
+            $table->index([
+                'moto_id',
+                'date_depense'
+            ]);
+            $table->index([
+                'categorie',
+                'date_depense'
+            ]);
+            $table->index([
+                'moto_id',
+                'categorie',
+                'date_depense'
+            ]);
+            $table->index([
+                'date_depense',
+                'categorie'
+            ]);
         });
     }
 

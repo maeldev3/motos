@@ -20,67 +20,55 @@ return new class extends Migration {
             $table->text('commentaire')->nullable();
             $table->timestamps();
 
-            /*
-                |--------------------------------------------------------------------------
-                | INDEX SIMPLES
-                |--------------------------------------------------------------------------
-                */
+            $table->index('moto_id');
 
-                $table->index('moto_id');
+            $table->index('conducteur_id');
 
-                $table->index('conducteur_id');
+            $table->index('date_versement');
 
-                $table->index('date_versement');
+            $table->index('periodicite');
 
-                $table->index('periodicite');
+            $table->index('en_retard');
 
-                $table->index('en_retard');
+            $table->index('created_at');
 
-                $table->index('created_at');
+            // Historique des versements d'une moto
+            $table->index([
+                'moto_id',
+                'date_versement'
+            ]);
 
-                /*
-                |--------------------------------------------------------------------------
-                | INDEX COMPOSITES
-                |--------------------------------------------------------------------------
-                */
+            // Historique des versements d'un conducteur
+            $table->index([
+                'conducteur_id',
+                'date_versement'
+            ]);
 
-                // Historique des versements d'une moto
-                $table->index([
-                    'moto_id',
-                    'date_versement'
-                ]);
+            // Dashboard par période
+            $table->index([
+                'date_versement',
+                'periodicite'
+            ]);
 
-                // Historique des versements d'un conducteur
-                $table->index([
-                    'conducteur_id',
-                    'date_versement'
-                ]);
+            // Paiements en retard
+            $table->index([
+                'en_retard',
+                'date_versement'
+            ]);
 
-                // Dashboard par période
-                $table->index([
-                    'date_versement',
-                    'periodicite'
-                ]);
+            // Historique d'une moto par période
+            $table->index([
+                'moto_id',
+                'periodicite',
+                'date_versement'
+            ]);
 
-                // Paiements en retard
-                $table->index([
-                    'en_retard',
-                    'date_versement'
-                ]);
-
-                // Historique d'une moto par période
-                $table->index([
-                    'moto_id',
-                    'periodicite',
-                    'date_versement'
-                ]);
-
-                // Historique d'un conducteur par période
-                $table->index([
-                    'conducteur_id',
-                    'periodicite',
-                    'date_versement'
-                ]);
+            // Historique d'un conducteur par période
+            $table->index([
+                'conducteur_id',
+                'periodicite',
+                'date_versement'
+            ]);
         });
     }
 

@@ -29,12 +29,7 @@ return new class extends Migration {
 
             $table->timestamps();
             $table->softDeletes();
-             /*
-            |--------------------------------------------------------------------------
-            | INDEX SQL
-            |--------------------------------------------------------------------------
-            */
-
+            
             // Jointure Moto
             $table->index('moto_id');
 
@@ -52,12 +47,6 @@ return new class extends Migration {
 
             // Soft Delete
             $table->index('deleted_at');
-
-            /*
-            |--------------------------------------------------------------------------
-            | INDEX COMPOSITES
-            |--------------------------------------------------------------------------
-            */
 
             // Conducteurs actifs d'une moto
             $table->index([

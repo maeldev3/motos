@@ -13,9 +13,9 @@ class VersementService
      */
     public function liste(array $filters): LengthAwarePaginator
     {
-        $query = Versement::query()
+        $query = Versement::select('id','moto_id','conducteur_id','date_versement','periodicite','reste_a_payer','montant_attendu','montant_verse','en_retard',)
             ->with([
-                'moto:id,immatriculation,marque,modele',
+                'moto:id,immatriculation',
                 'conducteur:id,nom,prenom,telephone'
             ]);
 

@@ -11,7 +11,8 @@ class AbsenceController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Absence::with('conducteur');
+        $query = Absence::select('id','conducteur_id','type','date_debut','date_fin','nombre_jours','retenue','motif');
+        // ->with('conducteur:id,nom,prenom,telephone,statut');
 
         if ($request->filled('conducteur_id')) {
             $query->where('conducteur_id', $request->conducteur_id);
@@ -45,7 +46,7 @@ class AbsenceController extends Controller
 
     public function show(Absence $absence)
     {
-        return $this->ok($absence->load('conducteur'));
+        return $this->ok($absence->load('conducteur:id,nom,prenom,telephone,statut'));
     }
 
     public function update(Request $request, Absence $absence)

@@ -17,43 +17,20 @@ return new class extends Migration {
             $table->date('date_octroi');
             $table->text('commentaire')->nullable();
             $table->timestamps();
-             /*
-            |--------------------------------------------------------------------------
-            | INDEX SQL
-            |--------------------------------------------------------------------------
-            */
-
             // Recherche par conducteur
             $table->index('conducteur_id');
-
-            // Recherche par type
             $table->index('type');
-
             // Recherche par date
             $table->index('date_octroi');
-
-            // Tri chronologique
             $table->index('created_at');
-
-            /*
-            |--------------------------------------------------------------------------
-            | INDEX COMPOSITES
-            |--------------------------------------------------------------------------
-            */
-
-            // Historique d'un conducteur
             $table->index([
                 'conducteur_id',
                 'date_octroi'
             ]);
-
-            // Avances ou provisions d'un conducteur
             $table->index([
                 'conducteur_id',
                 'type'
             ]);
-
-            // Dashboard mensuel
             $table->index([
                 'type',
                 'date_octroi'

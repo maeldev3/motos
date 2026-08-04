@@ -42,38 +42,24 @@ return new class extends Migration {
             $table->timestamps();
             $table->softDeletes();
 
-                // =====================================================
-            // CRÉATION DES INDEX SQL POUR ACCÉLÉRER LES RECHERCHES
-            // =====================================================
-            /*
-    |--------------------------------------------------------------------------
-    | INDEX SIMPLES
-    |--------------------------------------------------------------------------
-    */
+            $table->index('marque');
 
-    $table->index('marque');
+            $table->index('modele');
 
-    $table->index('modele');
+            $table->index('statut');
 
-    $table->index('statut');
+            $table->index('type_vehicule');
 
-    $table->index('type_vehicule');
+            $table->index('actif');
 
-    $table->index('actif');
+            $table->index('annee_fabrication');
 
-    $table->index('annee_fabrication');
+            $table->index('date_achat');
 
-    $table->index('date_achat');
+            $table->index('created_at');
 
-    $table->index('created_at');
+            $table->index('deleted_at');
 
-    $table->index('deleted_at');
-
-            /*
-            |--------------------------------------------------------------------------
-            | INDEX COMPOSITES
-            |--------------------------------------------------------------------------
-            */
 
             // Recherche marque + modèle
             $table->index([

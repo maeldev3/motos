@@ -18,17 +18,12 @@ class ConducteurController extends Controller
                 'id',
                 'nom',
                 'prenom',
-                'sexe',
-                'date_naissance',
-                'adresse',
                 'telephone',
-                'cin',
                 'moto_id',
                 'statut',
-                'created_at'
             ])
             ->with([
-                'moto:id,immatriculation,marque,modele'
+                'moto:id,marque,modele'
             ]);
 
         if ($request->filled('statut')) {
@@ -135,7 +130,7 @@ class ConducteurController extends Controller
                 'cin',
                 'numero_permis',
                 'date_embauche',
-                'photo',
+                // 'photo',
                 'contact_urgence_nom',
                 'contact_urgence_telephone',
                 'statut',
