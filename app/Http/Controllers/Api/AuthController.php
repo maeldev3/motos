@@ -38,7 +38,7 @@ class AuthController extends Controller
         return $this->created(['user' => $user, 'token' => $token], 'Compte créé avec succès');
     }
 
-    public function login(Request $request)
+        public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
@@ -49,7 +49,10 @@ class AuthController extends Controller
             return $this->error('Validation échouée', 422, $validator->errors());
         }
 
-        $user = User::where('email', $request->email)->first();
+        // select() ciblé : évite de charger toutes les colonnes (photos, tokens, etc.)
+        $user = User::select('id', 'name', 'email', 'password', 'actif')
+            ->where('email', $request->email)
+            ->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             return $this->error('Identifiants incorrects', 401);
@@ -59,10 +62,39 @@ class AuthController extends Controller
             return $this->error('Compte désactivé. Contactez un administrateur.', 403);
         }
 
+        // Supprime les anciens tokens du même nom pour éviter l'accumulation
+        // (optionnel, mais garde la table personal_access_tokens légère)
+        // $user->tokens()->where('name', 'api-token')->delete();
+
         $token = $user->createToken('api-token')->plainTextToken;
 
         return $this->ok(['user' => $user, 'token' => $token], 'Connexion réussie');
     }
+    // public function login(Request $request)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'email' => 'required|email',
+    //         'password' => 'required|string',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return $this->error('Validation échouée', 422, $validator->errors());
+    //     }
+
+    //     $user = User::where('email', $request->email)->first();
+
+    //     if (! $user || ! Hash::check($request->password, $user->password)) {
+    //         return $this->error('Identifiants incorrects', 401);
+    //     }
+
+    //     if (! $user->actif) {
+    //         return $this->error('Compte désactivé. Contactez un administrateur.', 403);
+    //     }
+
+    //     $token = $user->createToken('api-token')->plainTextToken;
+
+    //     return $this->ok(['user' => $user, 'token' => $token], 'Connexion réussie');
+    // }
 
     public function logout(Request $request)
     {
