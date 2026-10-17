@@ -242,39 +242,37 @@ class DepenseController extends Controller
 
 
 
-    /**
-     * Modification
-     */
-    public function update(Request $request,Depense $depense)
+    public function update(Request $request, Depense $depense)
     {
-
-
-        $data=$request->validate([
-
-            'categorie'=>'sometimes|string',
-
-            'montant'=>'sometimes|numeric|min:0',
-
-            'commentaire'=>'nullable|string',
-
+        $validator = Validator::make($request->all(), [
+            'moto_id'        => 'sometimes|nullable|exists:motos,id',
+            'date_depense'   => 'sometimes|required|date',
+            'categorie'      => 'sometimes|required|string',
+            'montant'        => 'sometimes|required|numeric|min:0',
+            'justificatif'   => 'nullable|image|max:4096',
+            'commentaire'    => 'nullable|string',
         ]);
-
-
-
+    
+        if ($validator->fails()) {
+            return $this->error('Validation échouée', 422, $validator->errors());
+        }
+    
+        $data = $validator->validated();
+    
+        if ($request->hasFile('justificatif')) {
+            $data['justificatif'] = $request->file('justificatif')
+                ->store('justificatifs', 'public');
+        }
+    
         $depense->update($data);
-
-
+    
         Cache::flush();
-
-
-
+    
         return $this->ok(
-            $depense,
+            $depense->load('moto:id,immatriculation,marque,modele'),
             'Dépense mise à jour'
         );
-
     }
-
 
 
 

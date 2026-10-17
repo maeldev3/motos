@@ -97,18 +97,22 @@ class VersementController extends Controller
     public function update(Request $request, Versement $versement)
     {
         $validator = Validator::make($request->all(), [
-            'montant_verse' => 'sometimes|required|numeric|min:0',
+            'moto_id'         => 'sometimes|required|exists:motos,id',
+            'conducteur_id'   => 'sometimes|nullable|exists:conducteurs,id',
+            'date_versement'  => 'sometimes|required|date',
+            'periodicite'     => 'sometimes|required|in:journalier,hebdomadaire,mensuel,annuel',
+            'montant_verse'   => 'sometimes|required|numeric|min:0',
             'montant_attendu' => 'sometimes|required|numeric|min:0',
-            'commentaire' => 'nullable|string',
+            'commentaire'     => 'nullable|string',
         ]);
-
+    
         if ($validator->fails()) {
             return $this->error('Validation échouée', 422, $validator->errors());
         }
-
+    
         $versement->update($validator->validated());
-
-        return $this->ok($versement, 'Versement mis à jour');
+    
+        return $this->ok($versement->load(['moto', 'conducteur']), 'Versement mis à jour');
     }
 
     public function destroy(Versement $versement)
