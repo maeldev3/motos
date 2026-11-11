@@ -8,11 +8,11 @@ class Alerte extends Model
 {
     protected $table = 'alertes';
 
-    protected $fillable = ['type', 'alertable_id', 'alertable_type', 'message', 'lue'];
+    protected $fillable = ['type', 'alertable_id', 'alertable_type', 'message', 'lue', 'severity', 'status', 'dedupe_key', 'metadata'];
 
     protected function casts(): array
     {
-        return ['lue' => 'boolean'];
+        return ['lue' => 'boolean', 'metadata' => 'array'];
     }
 
     public function alertable()

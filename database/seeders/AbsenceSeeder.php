@@ -30,7 +30,7 @@ class AbsenceSeeder extends Seeder
                 'date_fin' => '2026-03-07', // 7 jours
                 'nombre_jours' => 7,
                 'retenue' => 240000, // Calculé sur une base de 600000 Ar / 30 jours
-                'motif' => 'Paludisme (certificat médical fourni)',
+                'motif' => 'Dentiste',
             ]);
 
             // Absence 2 : Accident (Début Mai) - Impact sur le versement de Mai (500000 au lieu de 600000)
@@ -49,10 +49,10 @@ class AbsenceSeeder extends Seeder
                 'conducteur_id' => $njaka->id,
                 'type' => 'maladie',
                 'date_debut' => '2026-06-20',
-                'date_fin' => '2026-06-30', // 11 jours
-                'nombre_jours' => 11,
+                'date_fin' => '2026-06-30', // 15 jours
+                'nombre_jours' => 15,
                 'retenue' => 300000,
-                'motif' => 'Moustique (Dengue)',
+                'motif' => 'Accident de trajet (arrêt de travail)',
             ]);
         }
 
@@ -68,6 +68,24 @@ class AbsenceSeeder extends Seeder
                 'nombre_jours' => 7,
                 'retenue' => 200000,
                 'motif' => 'Grippe sévère',
+            ]);
+            Absence::create([
+                'conducteur_id' => $fihorenana->id,
+                'type' => 'maladie',
+                'date_debut' => '2026-09-01',
+                'date_fin' => '2026-09-15', // 15 jours
+                'nombre_jours' => 15,
+                'retenue' => 300000,
+                'motif' => 'Accident de trajet (arrêt de travail)',
+            ]);
+            Absence::create([
+                'conducteur_id' => $fihorenana->id,
+                'type' => 'maladie',
+                'date_debut' => '2026-11-01',
+                'date_fin' => '2026-11-30', //  jours
+                'nombre_jours' => 30,
+                'retenue' => 0,
+                'motif' => 'Accident de trajet (arrêt de travail)',
             ]);
         }
 

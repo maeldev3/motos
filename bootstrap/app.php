@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
+            'automation.secret' => \App\Http\Middleware\VerifyAutomationSecret::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

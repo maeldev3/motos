@@ -24,14 +24,21 @@ class MotoController extends Controller
 
     private function bumpCacheVersion(): void
     {
-        Cache::forever('motos_cache_version', now()->timestamp);
+        Cache::forever('motos_cache_version', (int) (microtime(true) * 1000000));
     }
 
     public function index(Request $request)
     {
         // 1. PAGINATION & CACHE
-        $perPage = $request->get('per_page', 20);
-        $cacheKey = 'motos_list_v' . $this->cacheVersion() . '_' . md5(json_encode($request->all()));
+        $validated = $request->validate([
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'statut' => ['sometimes', 'string', 'max:40'],
+            'type_vehicule' => ['sometimes', 'in:moto,voiture'],
+            'recherche' => ['sometimes', 'string', 'max:100'],
+        ]);
+        $perPage = (int) ($validated['per_page'] ?? 20);
+        $cacheKey = 'motos_list_v' . $this->cacheVersion() . '_' . md5(json_encode($validated));
 
         // Le cache stocke les résultats paginés pendant 5 minutes
         return Cache::remember($cacheKey, 300, function () use ($request, $perPage) {
@@ -41,7 +48,9 @@ class MotoController extends Controller
                 'immatriculation',
                 'marque',
                 'modele',
-                'statut'
+                'type_vehicule',
+                'statut',
+                'actif'
             ]);
 
             // 2. INDEX SQL UTILISÉS ICI (statut, type_vehicule)
@@ -116,78 +125,15 @@ class MotoController extends Controller
 
     public function show(int $id)
     {
-        $cacheKey = "moto_show_{$id}";
-    
-        $moto = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($id) {
-    
-            return Moto::query()
-    
-                ->select([
-                    'id',
-                    'immatriculation',
-                    'marque',
-                    'modele',
-                    'couleur',
-                    'annee_fabrication',
-                    'numero_chassis',
-                    'numero_moteur',
-                    'date_achat',
-                    'prix_achat',
-                    'type_vehicule',
-                    'montant_versement_mensuel',
-                    'statut',
-                    'actif',
-                ])
-    
-                // ->with([
-    
-                //     'affectationActive' => function ($q) {
-                //         $q->select([
-                //             'id',
-                //             'moto_id',
-                //             'conducteur_id',
-                //             'active'
-                //         ]);
-                //     },
-    
-                //     'affectationActive.conducteur' => function ($q) {
-                //         $q->select([
-                //             'id',
-                //             'nom',
-                //             'prenom'
-                //         ]);
-                //     },
-    
-                //   'reparations' => function ($q) {
-                //         $q->select([
-                //             'id',
-                //             'moto_id',
-                //             'date_reparation',
-                //             'type_reparation',
-                //             'montant'
-                //         ])
-                //         ->latest('date_reparation')
-                //         ->limit(5);
-                //     },
+        $moto = Moto::query()
+            ->with([
+                'affectationActive.conducteur:id,nom,prenom,telephone',
+            ])
+            ->findOrFail($id);
 
-                //     'depenses' => function ($q) {
-                //         $q->select([
-                //             'id',
-                //             'moto_id',
-                //             'date_depense',
-                //             'categorie',
-                //             'montant'
-                //         ])
-                //         ->latest('date_depense')
-                //         ->limit(5);
-                //     },
-                // ])
-    
-                ->findOrFail($id);
-        });
-    
         return $this->ok($moto);
     }
+
     public function update(Request $request, Moto $moto)
     {
         $validator = Validator::make($request->all(), [
@@ -255,8 +201,13 @@ class MotoController extends Controller
      */
     public function finances(Request $request, Moto $moto)
     {
-        $debut = $request->get('debut', now()->startOfMonth()->toDateString());
-        $fin = $request->get('fin', now()->endOfMonth()->toDateString());
+        $validated = $request->validate([
+            'debut' => ['sometimes', 'date'],
+            'fin' => ['sometimes', 'date', 'after_or_equal:debut'],
+        ]);
+
+        $debut = $validated['debut'] ?? now()->startOfMonth()->toDateString();
+        $fin = $validated['fin'] ?? now()->endOfMonth()->toDateString();
 
         // 4. QUEUE / JOB (Pour les calculs longs, ex: calculs sur plusieurs années)
         // Si la période dépasse 1 an, on met le calcul en file d'attente.

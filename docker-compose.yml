@@ -51,14 +51,14 @@ services:
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-moto_api}
       MYSQL_USER: ${DB_USERNAME:-ismael}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-Dev@2026Mysql!}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-Root@2026!}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-CHANGE_ME_ROOT_PASSWORD}
     ports:
       - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - fleetmoto_mysqldata:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-Root@2026!}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-CHANGE_ME_ROOT_PASSWORD}"]
       interval: 5s
       timeout: 5s
       retries: 15
@@ -79,7 +79,7 @@ services:
       PMA_HOST: mysql
       PMA_PORT: 3306
       PMA_USER: ${DB_USERNAME:-root}
-      PMA_PASSWORD: ${DB_PASSWORD:-Root@2026!}
+      PMA_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_ROOT_PASSWORD}
       UPLOAD_LIMIT: 20M
     ports:
       - "${PHPMYADMIN_PORT:-7489}:80"
@@ -120,7 +120,7 @@ services:
     container_name: fleetmoto_queue
     restart: unless-stopped
     working_dir: /var/www/html
-    command: php artisan queue:work --tries=3 --backoff=5 --sleep=3
+    command: php artisan queue:work --queue=automation,default --tries=3 --backoff=5 --sleep=3
     volumes:
       - ./:/var/www/html
     env_file:
@@ -160,7 +160,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_DATABASE:-moto_api}
       POSTGRES_USER: ${DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:

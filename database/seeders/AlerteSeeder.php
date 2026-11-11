@@ -31,10 +31,10 @@ class AlerteSeeder extends Seeder
 
                 // Message personnalisé selon le statut
                 $message = match ($moto->statut) {
-                    'accidentee' => "🚨 La moto {$moto->immatriculation} est accidentée. Nécessite une réparation urgente.",
-                    'en_reparation' => "🔧 La moto {$moto->immatriculation} est actuellement en réparation au garage.",
-                    'en_entretien' => "🛠️ La moto {$moto->immatriculation} est en entretien préventif.",
-                    default => "⚠️ La moto {$moto->immatriculation} est hors service.",
+                    'accidentee' => "La moto {$moto->immatriculation} est accidentée. Nécessite une réparation urgente.",
+                    'en_reparation' => "La moto {$moto->immatriculation} est actuellement en réparation au garage.",
+                    'en_entretien' => "La moto {$moto->immatriculation} est en entretien préventif.",
+                    default => "La moto {$moto->immatriculation} est hors service.",
                 };
 
                 Alerte::create([
@@ -67,7 +67,7 @@ class AlerteSeeder extends Seeder
                     'type' => 'versement_retard',
                     'alertable_type' => Moto::class,
                     'alertable_id' => $motoId,
-                    'message' => "⚠️ Le conducteur {$conducteur->nom} {$conducteur->prenom} a un retard de paiement de " . number_format($totalRestant, 0, '', ' ') . " Ar pour la moto {$moto->immatriculation}.",
+                    'message' => " Le conducteur {$conducteur->nom} {$conducteur->prenom} a un retard de paiement de " . number_format($totalRestant, 0, '', ' ') . " Ar pour la moto {$moto->immatriculation}.",
                     'lue' => false,
                     'created_at' => $firstRetard->date_versement->addDays(5), // L'alerte apparaît 5 jours après le retard
                 ]);
@@ -83,7 +83,7 @@ class AlerteSeeder extends Seeder
                     'type' => 'conducteur_absent',
                     'alertable_type' => Conducteur::class,
                     'alertable_id' => $conducteur->id,
-                    'message' => "🚫 Le conducteur {$conducteur->prenom} {$conducteur->nom} a été suspendu. Vérifiez son dossier.",
+                    'message' => "Le conducteur {$conducteur->prenom} {$conducteur->nom} a été suspendu. Vérifiez son dossier.",
                     'lue' => false,
                     'created_at' => Carbon::now()->subDays(2),
                 ]);

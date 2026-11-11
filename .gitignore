@@ -17,3 +17,7 @@
 Homestead.json
 Homestead.yaml
 auth.json
+
+.env.*
+!.env.example
+!.env.docker.exemple

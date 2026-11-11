@@ -2,124 +2,83 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Affectation;
 use App\Models\Versement;
+use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class VersementSeeder extends Seeder
 {
     public function run(): void
     {
-        // On récupère les 3 conducteurs spécifiques par leur nom pour la démo
-        // (Si les IDs changent, modifiez les noms ci-dessous pour correspondre à votre DB)
-        $njakaAffectation = Affectation::where('active', true)->whereHas('conducteur', function($q) {
-            $q->where('nom', 'like', '%Njaka%');
-        })->with('moto', 'conducteur')->first();
+        $historique = [
+            // Njaka : versements mensuels. Les mois avec absence ont un attendu réduit.
+            ['conducteur' => 'Njaka', 'date' => '2026-02-28', 'montant' => 360000, 'attendu' => 360000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Njaka', 'date' => '2026-03-26', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Njaka', 'date' => '2026-04-30', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Njaka', 'date' => '2026-05-30', 'montant' => 500000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Njaka', 'date' => '2026-06-30', 'montant' => 300000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Njaka', 'date' => '2026-07-30', 'montant' => 400000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Njaka', 'date' => '2026-08-30', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Njaka', 'date' => '2026-09-30', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Njaka', 'date' => '2026-10-30', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
 
-        $jeseAffectation = Affectation::where('active', true)->whereHas('conducteur', function($q) {
-            $q->where('nom', 'like', '%Jese%');
-        })->with('moto', 'conducteur')->first();
 
-        $fihorenanaAffectation = Affectation::where('active', true)->whereHas('conducteur', function($q) {
-            $q->where('nom', 'like', '%Fihorenana%');
-        })->with('moto', 'conducteur')->first();
+            // Fihorenana (Beloha)
+            ['conducteur' => 'Fihorenana', 'date' => '2026-04-30', 'montant' => 400000, 'attendu' => 400000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Fihorenana', 'date' => '2026-05-30', 'montant' => 300000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Fihorenana', 'date' => '2026-06-30', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Fihorenana', 'date' => '2026-07-30', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Fihorenana', 'date' => '2026-08-30', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Fihorenana', 'date' => '2026-09-30', 'montant' => 300000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Fihorenana', 'date' => '2026-10-30', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
 
-        // 1. VERSEMENTS DE NJAKA (Moto 1) - 6 mois d'historique
-        if ($njakaAffectation) {
-            $moto = $njakaAffectation->moto;
-            $conducteur = $njakaAffectation->conducteur;
-            $montantAttendu = $moto->montant_versement_mensuel ?? 600000;
+            // Jese
+            ['conducteur' => 'Jese', 'date' => '2026-06-30', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Jese', 'date' => '2026-07-30', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Jese', 'date' => '2026-08-30', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Jese', 'date' => '2026-09-30', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
+            ['conducteur' => 'Jese', 'date' => '2026-10-30', 'montant' => 600000, 'attendu' => 600000, 'periodicite' => 'mensuel'],
 
-            $datesNjaka = [
-                ['date' => '2026-02-28', 'montant' => 360000], // 28 Février : 360000ar
-                ['date' => '2026-03-26', 'montant' => 600000], // 26 Mars : 600000ar
-                ['date' => '2026-04-30', 'montant' => 600000], // 30 Avril : 600000 ar
-                ['date' => '2026-05-30', 'montant' => 500000], // 30 Mai : 500000ar
-                ['date' => '2026-06-30', 'montant' => 300000], // 30 juin : 300000ar
-                ['date' => '2026-07-30', 'montant' => 400000], // 30 juillet : 400000ar
-            ];
 
-            foreach ($datesNjaka as $data) {
-                $date = \Carbon\Carbon::parse($data['date']);
-                $montantVerse = $data['montant'];
-                $enRetard = $montantVerse < $montantAttendu;
+            // La note affiche 6 000 000 Ar en octobre ; 600 000 Ar est retenu provisoirement.
 
-                Versement::create([
-                    'moto_id' => $moto->id,
-                    'conducteur_id' => $conducteur->id,
-                    'date_versement' => $date,
-                    'periodicite' => 'mensuel',
-                    'montant_attendu' => $montantAttendu,
-                    'montant_verse' => $montantVerse,
-                    'reste_a_payer' => max(0, $montantAttendu - $montantVerse),
-                    'en_retard' => $enRetard,
-                    'commentaire' => 'Versement mensuel ' . $date->format('F Y'),
-                ]);
+            // Manana : paiements hebdomadaires à 170 000 Ar. Le 20/10 est un paiement partiel.
+            ['conducteur' => 'Manana', 'date' => '2026-10-18', 'montant' => 170000, 'attendu' => 170000, 'periodicite' => 'hebdomadaire'],
+            ['conducteur' => 'Manana', 'date' => '2026-10-20', 'montant' => 85000, 'attendu' => 85000, 'periodicite' => 'hebdomadaire'],
+            ['conducteur' => 'Manana', 'date' => '2026-10-27', 'montant' => 170000, 'attendu' => 170000, 'periodicite' => 'hebdomadaire'],
+            ['conducteur' => 'Manana', 'date' => '2026-11-07', 'montant' => 170000, 'attendu' => 170000, 'periodicite' => 'hebdomadaire'],
+        ];
+
+        foreach ($historique as $item) {
+            $affectation = Affectation::with('moto', 'conducteur')
+                ->where('active', true)
+                ->whereHas('conducteur', fn ($q) => $q->where('nom', $item['conducteur']))
+                ->first();
+
+            if (!$affectation) {
+                continue;
             }
-        }
 
-        // 2. VERSEMENTS DE JESE (Moto 2) - 2 mois d'historique (Image 2)
-        if ($jeseAffectation) {
-            $moto = $jeseAffectation->moto;
-            $conducteur = $jeseAffectation->conducteur;
-            $montantAttendu = $moto->montant_versement_mensuel ?? 600000;
+            $date = Carbon::parse($item['date']);
+            $montant = $item['montant'];
+            $attendu = $item['attendu'];
 
-            // Dates exactes de votre capture d'écran
-            $datesJese = [
-                ['date' => '2026-06-30', 'montant' => 600000], // Mois juin : 600000ar (30 juillet)
-                ['date' => '2026-07-30', 'montant' => 600000], // Mois Juillet : 600000ar 30 juillet
-            ];
-
-            foreach ($datesJese as $data) {
-                $date = \Carbon\Carbon::parse($data['date']);
-                $montantVerse = $data['montant'];
-                $enRetard = false;
-
-                Versement::create([
-                    'moto_id' => $moto->id,
-                    'conducteur_id' => $conducteur->id,
-                    'date_versement' => $date,
-                    'periodicite' => 'mensuel',
-                    'montant_attendu' => $montantAttendu,
-                    'montant_verse' => $montantVerse,
-                    'reste_a_payer' => 0,
-                    'en_retard' => $enRetard,
-                    'commentaire' => 'Versement mensuel ' . $date->format('F Y'),
-                ]);
-            }
-        }
-
-        // 3. VERSEMENTS DE FIHORENANA (Moto 3) - 4 mois d'historique (Image 3)
-        if ($fihorenanaAffectation) {
-            $moto = $fihorenanaAffectation->moto;
-            $conducteur = $fihorenanaAffectation->conducteur;
-            $montantAttendu = $moto->montant_versement_mensuel ?? 600000;
-
-            // Dates exactes de votre capture d'écran
-            $datesFihorenana = [
-                ['date' => '2026-04-30', 'montant' => 400000], // 30 Avril 400000ar
-                ['date' => '2026-05-30', 'montant' => 300000], // 30 Mai 300000ar
-                ['date' => '2026-06-30', 'montant' => 600000], // 30 Juin 600000ar
-                ['date' => '2026-07-30', 'montant' => 600000], // 30 Juillet 600000ar
-            ];
-
-            foreach ($datesFihorenana as $data) {
-                $date = \Carbon\Carbon::parse($data['date']);
-                $montantVerse = $data['montant'];
-                $enRetard = $montantVerse < $montantAttendu;
-
-                Versement::create([
-                    'moto_id' => $moto->id,
-                    'conducteur_id' => $conducteur->id,
-                    'date_versement' => $date,
-                    'periodicite' => 'mensuel',
-                    'montant_attendu' => $montantAttendu,
-                    'montant_verse' => $montantVerse,
-                    'reste_a_payer' => max(0, $montantAttendu - $montantVerse),
-                    'en_retard' => $enRetard,
-                    'commentaire' => 'Versement mensuel ' . $date->format('F Y'),
-                ]);
-            }
+            Versement::updateOrCreate(
+                [
+                    'moto_id' => $affectation->moto_id,
+                    'conducteur_id' => $affectation->conducteur_id,
+                    'date_versement' => $date->toDateString(),
+                ],
+                [
+                    'commentaire' => 'Historique ' . $item['periodicite'] . ' ' . $date->format('Y-m-d'),
+                    'periodicite' => $item['periodicite'],
+                    'montant_attendu' => $attendu,
+                    'montant_verse' => $montant,
+                    'reste_a_payer' => max(0, $attendu - $montant),
+                    'en_retard' => max(0, $attendu - $montant) > 0 && $date->lt(now()),
+                ]
+            );
         }
     }
 }

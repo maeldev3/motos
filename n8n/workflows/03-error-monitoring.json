@@ -1,0 +1,72 @@
+{
+  "name": "Moto Manager - Automation error alert",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "moto-automation-error",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "error-hook",
+      "name": "Erreur workflow",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "moto-automation-error"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.MOTO_API_URL}}/api/automation/events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Secret",
+              "value": "={{$env.AUTOMATION_WEBHOOK_SECRET}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { event: 'automation.failed', idempotency_key: $execution.id, occurred_at: $now.toISO(), data: { workflow: $workflow.name, execution_id: $execution.id, error: $json } } }}",
+        "options": {}
+      },
+      "id": "report-error",
+      "name": "Journaliser erreur Laravel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Erreur workflow": {
+      "main": [
+        [
+          {
+            "node": "Journaliser erreur Laravel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Africa/Antananarivo"
+  },
+  "versionId": "moto-enterprise-v1"
+}

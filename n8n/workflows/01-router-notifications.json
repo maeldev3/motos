@@ -1,0 +1,170 @@
+{
+  "name": "Moto Manager - Router notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "moto-events",
+        "responseMode": "onReceived",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "webhook-moto-events",
+      "name": "Laravel Event Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "moto-events"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.event }}",
+                    "rightValue": "maintenance.alert.created",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.event }}",
+                    "rightValue": "payment.overdue",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        }
+      },
+      "id": "switch-event",
+      "name": "Classer événement",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/{{$env.WHATSAPP_API_VERSION || 'v21.0'}}/{{$env.WHATSAPP_PHONE_NUMBER_ID}}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.WHATSAPP_ACCESS_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: 'whatsapp', to: $json.body.data.telephone, type: 'text', text: { body: $json.body.data.message } } }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "whatsapp-send",
+      "name": "WhatsApp Cloud API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        180
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.body.data.email}}",
+        "subject": "Notification Moto Manager",
+        "text": "={{$json.body.data.message}}",
+        "options": {}
+      },
+      "id": "email-send",
+      "name": "Envoyer e-mail (configurer SMTP)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        760,
+        420
+      ],
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Laravel Event Webhook": {
+      "main": [
+        [
+          {
+            "node": "Classer événement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classer événement": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Cloud API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Envoyer e-mail (configurer SMTP)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Africa/Antananarivo"
+  },
+  "versionId": "moto-enterprise-v1"
+}

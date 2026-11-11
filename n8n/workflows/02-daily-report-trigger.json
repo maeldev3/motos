@@ -1,0 +1,77 @@
+{
+  "name": "Moto Manager - Daily fleet report trigger",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * *"
+            }
+          ]
+        }
+      },
+      "id": "daily-trigger",
+      "name": "Tous les jours 18h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.MOTO_API_URL}}/api/automation/events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Secret",
+              "value": "={{$env.AUTOMATION_WEBHOOK_SECRET}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { event: 'report.daily.requested', idempotency_key: 'daily-report-' + $now.toFormat('yyyyLLdd'), occurred_at: $now.toISO(), data: { report_date: $now.toFormat('yyyy-LL-dd') } } }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "request-report",
+      "name": "Demander bilan à Laravel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Tous les jours 18h": {
+      "main": [
+        [
+          {
+            "node": "Demander bilan à Laravel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Africa/Antananarivo"
+  },
+  "versionId": "moto-enterprise-v1"
+}

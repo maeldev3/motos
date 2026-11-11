@@ -13,17 +13,20 @@ class Moto extends Model
     protected $fillable = [
         'immatriculation', 'marque', 'modele', 'couleur', 'annee_fabrication',
         'numero_chassis', 'numero_moteur', 'date_achat', 'prix_achat', 'photo',
-        'type_vehicule', 'montant_versement_mensuel', 'montant_versement_journalier',
-        'statut', 'actif',
+        'type_vehicule', 'kilometrage_actuel', 'dernier_releve_kilometrage_at', 'montant_versement_mensuel', 'montant_versement_journalier',
+        'periodicite_versement', 'montant_versement_hebdomadaire', 'statut', 'actif',
     ];
 
     protected function casts(): array
     {
         return [
             'date_achat' => 'date',
+            'dernier_releve_kilometrage_at' => 'date',
+            'kilometrage_actuel' => 'integer',
             'prix_achat' => 'decimal:2',
             'montant_versement_mensuel' => 'decimal:2',
             'montant_versement_journalier' => 'decimal:2',
+            'montant_versement_hebdomadaire' => 'decimal:2',
             'actif' => 'boolean',
         ];
     }
@@ -47,6 +50,11 @@ class Moto extends Model
     public function versements()
     {
         return $this->hasMany(Versement::class);
+    }
+
+    public function maintenancePlans()
+    {
+        return $this->hasMany(\App\Models\MaintenancePlan::class);
     }
 
     public function reparations()

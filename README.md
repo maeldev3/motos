@@ -1,46 +1,39 @@
 # Moto Manager API
 
-API Laravel professionnelle pour la gestion d'une flotte de motos/voitures, des conducteurs, des versements, dépenses, réparations et finances — basée sur le cahier des charges fourni.
+API REST de gestion de flotte et de suivi financier, construite avec **Laravel 11**, **PHP 8.2+**, **MySQL/PostgreSQL** et **Laravel Sanctum**.
 
-## 1. Structure du projet
+## Fonctionnalités
 
-```
-moto-api/
-├── app/
-│   ├── Http/
-│   │   ├── Controllers/Api/   → AuthController, MotoController, ConducteurController,
-│   │   │                        AffectationController, VersementController, AbsenceController,
-│   │   │                        AvanceController, ReparationController, DepenseController,
-│   │   │                        DashboardController, RapportController
-│   │   └── Middleware/CheckRole.php   → contrôle des rôles (administrateur, gestionnaire, comptable, consultation)
-│   └── Models/                → User, Moto, Conducteur, Affectation, Versement, Absence,
-│                                 Avance, AvanceRemboursement, Reparation, Depense, Alerte
-├── database/
-│   ├── migrations/            → toutes les tables du cahier des charges
-│   ├── seeders/                → compte administrateur par défaut
-│   └── factories/
-├── routes/api.php             → toutes les routes API (protégées par Sanctum)
-├── resources/views/rapports/  → vue PDF (dompdf)
-├── tests/Feature/MotoTest.php → exemple de tests automatisés
-├── tests_api/                 → requêtes de test manuelles (curl + fichier .http)
-├── flutter_example/           → exemple de client Flutter
-├── Dockerfile                 → image de déploiement (Render)
-├── render.yaml                → blueprint Render
-└── .env.example
-```
+- Authentification par jeton Bearer et gestion des rôles.
+- Gestion des motos/véhicules et de leurs états.
+- Gestion des conducteurs et historique des affectations.
+- Versements, absences, avances et remboursements.
+- Réparations et dépenses.
+- Notifications/alertes.
+- Tableau de bord et rapports PDF.
 
-## 2. Installation locale
+## Stack technique
 
-Prérequis : PHP 8.2+, Composer, extension `pdo_pgsql`.
+| Couche | Technologie |
+|---|---|
+| Framework | Laravel 11 |
+| Runtime | PHP 8.2+ |
+| Authentification API | Laravel Sanctum |
+| Base de données | MySQL 8+ ou PostgreSQL |
+| Documentation | OpenAPI 3.1 via Dedoc Scramble |
+| Tests | PHPUnit |
+| Qualité de code | Laravel Pint |
+
+## Installation locale
 
 ```bash
-cd moto-api
-composer install
 cp .env.example .env
+composer update dedoc/scramble --with-all-dependencies
+composer install
 php artisan key:generate
 ```
 
-Configurez votre base de données dans `.env` (voir section Neon ci-dessous), puis :
+Renseignez ensuite vos identifiants MySQL ou PostgreSQL dans `.env`. Créez la base de données puis lancez :
 
 ```bash
 php artisan migrate --seed
@@ -48,172 +41,127 @@ php artisan storage:link
 php artisan serve
 ```
 
-L'API est disponible sur `http://localhost:8000/api`.
+L'API est disponible sur `http://127.0.0.1:8000/api`.
 
-Compte administrateur créé par le seeder :
-- email : `admin@moto-api.com`
-- mot de passe : `password123`
+## Documentation OpenAPI / Swagger UI
 
-⚠️ Changez ce mot de passe en production.
+La documentation est générée automatiquement à partir des routes, règles de validation, contrôleurs et ressources Laravel par [Dedoc Scramble](https://scramble.dedoc.co/).
 
-## 3. Base de données : MySQL en local, Neon (PostgreSQL) en alternative
+La dépendance est déclarée dans `composer.json`. La commande `composer update dedoc/scramble --with-all-dependencies` synchronise `composer.lock` avec cette nouvelle dépendance (à exécuter une seule fois après extraction, avant le premier `composer install`).
 
-Le projet supporte **deux connexions** dans `config/database.php` : `mysql` (dev local) et `pgsql` (Neon, prod/staging). Vous basculez de l'une à l'autre uniquement via `.env` — aucun changement de code n'est nécessaire.
+Après installation :
 
-### a) MySQL en local (configuration active par défaut dans `.env.example`)
+- Interface interactive : `http://127.0.0.1:8000/docs/api`
+- Spécification OpenAPI JSON : `http://127.0.0.1:8000/docs/api.json`
+- Export statique : `php artisan scramble:export`
 
-1. Créez la base et l'utilisateur (adaptez si vous utilisez déjà un compte) :
-   ```bash
-   mysql -u root -p -e "CREATE DATABASE moto_api CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-   mysql -u root -p -e "CREATE USER 'ismael'@'localhost' IDENTIFIED BY 'Dev@2026Mysql!';"
-   mysql -u root -p -e "GRANT ALL PRIVILEGES ON moto_api.* TO 'ismael'@'localhost'; FLUSH PRIVILEGES;"
-   ```
-2. `.env` (déjà pré-rempli dans `.env.example`) :
-   ```env
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=moto_api
-   DB_USERNAME=ismael
-   DB_PASSWORD=Dev@2026Mysql!
-   ```
-   Comptes disponibles en local (au choix) :
-   | Utilisateur | Mot de passe | Usage |
-   |---|---|---|
-   | `root` | `Root@2026!` | Admin serveur MySQL |
-   | `ismael` | `Dev@2026Mysql!` | Développeur (utilisé par défaut) |
-   | `admin` | `Admin@2026!` | Compte applicatif |
+La documentation est protégée en dehors de l'environnement local : seul un utilisateur authentifié avec le rôle `administrateur` peut consulter les pages de documentation.
 
-   ⚠️ Ces mots de passe sont fournis pour le développement local uniquement — ne les réutilisez jamais en production, et ne committez pas le `.env` réel (seul `.env.example` doit être versionné).
+**Important :** le fichier `composer.lock` fourni provient du projet d'origine et ne contient pas encore Scramble. Il faut donc synchroniser le verrouillage une seule fois avec `composer update dedoc/scramble --with-all-dependencies`, puis versionner le nouveau `composer.lock`. En CI/CD et sur les serveurs, utilisez ensuite uniquement `composer install`.
 
-3. Migrations :
-   ```bash
-   php artisan migrate --seed
-   ```
+## Authentification
 
-### b) Neon (PostgreSQL gratuit, pour la prod/staging — ex. Render)
+1. Envoyer `POST /api/auth/login` avec `email`, `password` et éventuellement `device_name`.
+2. Récupérer `data.token`.
+3. Envoyer le jeton dans chaque requête protégée :
 
-1. Créez un compte sur https://neon.tech et un nouveau projet.
-2. Dans le dashboard Neon, copiez la **Connection string** (bouton "Connect"), du type :
-   ```
-   postgresql://neondb_owner:VOTRE_MDP@ep-xxxx-xxxx.eu-central-1.aws.neon.tech/neondb?sslmode=require
-   ```
-3. Dans `.env`, **commentez le bloc MySQL** et **décommentez le bloc Neon** (déjà présent en commentaire dans `.env.example`) :
-
-   **Option A — variable unique (recommandée) :**
-   ```env
-   DATABASE_URL=postgresql://neondb_owner:VOTRE_MDP@ep-xxxx.neon.tech/neondb?sslmode=require
-   ```
-
-   **Option B — variables séparées :**
-   ```env
-   DB_CONNECTION=pgsql
-   DB_HOST=ep-xxxx-xxxx.eu-central-1.aws.neon.tech
-   DB_PORT=5432
-   DB_DATABASE=neondb
-   DB_USERNAME=neondb_owner
-   DB_PASSWORD=VOTRE_MDP
-   DB_SSLMODE=require
-   ```
-
-4. Lancez les migrations :
-   ```bash
-   php artisan migrate --seed
-   ```
-
-`config/database.php` utilise `DATABASE_URL` en priorité si elle est définie (que ce soit pour `mysql` ou `pgsql`).
-
-## 4. Déploiement sur Render
-
-Le projet contient un `Dockerfile` et un `render.yaml` prêts à l'emploi.
-
-### Étapes :
-
-1. Poussez le projet (dézippé) sur un dépôt GitHub.
-2. Sur https://render.com → **New +** → **Blueprint** → sélectionnez le dépôt (Render détecte `render.yaml` automatiquement).
-   - Ou bien **New +** → **Web Service** → **Environment: Docker**.
-3. Renseignez la variable d'environnement `DATABASE_URL` avec la chaîne de connexion Neon (dans l'onglet *Environment* du service Render).
-4. Render construit l'image (`Dockerfile`), exécute automatiquement au démarrage :
-   ```
-   php artisan migrate --force
-   php artisan config:cache
-   php artisan route:cache
-   php artisan storage:link
-   php artisan serve --host=0.0.0.0 --port=$PORT
-   ```
-5. Une fois déployé, votre API sera accessible à une URL du type :
-   ```
-   https://moto-manager-api.onrender.com/api
-   ```
-
-> Le plan gratuit Render met le service en veille après inactivité (le premier appel après une pause peut prendre ~30-60s).
-
-## 5. Rôles et sécurité
-
-Authentification par token (Laravel Sanctum). 4 rôles : `administrateur`, `gestionnaire`, `comptable`, `consultation`.
-
-- `POST /api/auth/login` → renvoie un `token` à utiliser en en-tête `Authorization: Bearer {token}`.
-- Certaines routes peuvent être restreintes via le middleware `role:administrateur,gestionnaire`.
-
-## 6. Tester l'API
-
-### a) Avec le script curl fourni
-```bash
-cd tests_api
-./test_curl.sh http://localhost:8000/api
+```http
+Authorization: Bearer VOTRE_JETON
+Accept: application/json
 ```
 
-### b) Avec le fichier `.http` (extension "REST Client" VSCode ou import Postman)
-Voir `tests_api/requetes_api.http`.
+4. Déconnexion : `POST /api/auth/logout` (révoque le jeton courant).
 
-### c) Tests automatisés PHPUnit
+La création d'un compte (`POST /api/auth/register-utilisateur`) est réservée au rôle `administrateur`. Les mots de passe doivent comporter au moins 12 caractères, avec majuscules, minuscules, chiffres et symboles.
+
+## Endpoints
+
+Toutes les routes ci-dessous sont préfixées par `/api`. Sauf `POST /auth/login`, elles nécessitent un jeton Sanctum.
+
+| Domaine | Méthodes et chemins |
+|---|---|
+| Authentification | `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/register-utilisateur` (administrateur) |
+| Motos | `GET/POST /motos`, `GET/PUT/PATCH/DELETE /motos/{moto}`, `POST /motos/{moto}/desactiver`, `POST /motos/{moto}/reactiver`, `GET /motos/{moto}/finances` |
+| Conducteurs | `GET/POST /conducteurs`, `GET/PUT/PATCH/DELETE /conducteurs/{conducteur}`, `POST /conducteurs/{conducteur}/suspendre`, `POST /conducteurs/{conducteur}/reactiver`, `POST /conducteurs/{conducteur}/affecter-moto`, `GET /conducteurs/{conducteur}/historique-motos`, `GET /conducteurs/{conducteur}/versement` |
+| Affectations | `GET /affectations`, `GET /affectations/{affectation}` |
+| Versements | `GET/POST /versements`, `GET/PUT/PATCH/DELETE /versements/{versement}`, `GET /versements-resume` |
+| Absences | `GET/POST /absences`, `GET/PUT/PATCH/DELETE /absences/{absence}` |
+| Avances | `GET/POST /avances`, `GET/PUT/PATCH/DELETE /avances/{avance}`, `POST /avances/{avance}/rembourser` |
+| Réparations | `GET/POST /reparations`, `GET/PUT/PATCH/DELETE /reparations/{reparation}` |
+| Dépenses | `GET/POST /depenses`, `GET/PUT/PATCH/DELETE /depenses/{depense}`, `GET /depenses-par-categorie` |
+| Alertes | `GET /alertes`, `POST /alertes/tout-lire`, `PATCH /alertes/{alerte}/lire`, `DELETE /alertes/{alerte}` |
+| Dashboard | `GET /dashboard`, `/dashboard/conducteurs-evolution`, `/dashboard/motos-performance`, `/dashboard/versements-resume`, `/dashboard/modules`, `/dashboard/vehicules-actifs` |
+| Rapports | `GET /rapports/global`, `GET /rapports/moto/{moto}`, `GET /rapports/export-pdf` |
+
+Pour les paramètres détaillés, les types, exemples de payload et réponses, utilisez Swagger UI : les schémas sont générés depuis le code source.
+
+## Format de réponse
+
+Réponse applicative standard :
+
+```json
+{
+  "success": true,
+  "message": "Opération réussie",
+  "data": {}
+}
+```
+
+Erreur standard :
+
+```json
+{
+  "success": false,
+  "message": "Validation échouée",
+  "errors": {
+    "field": ["Le champ est obligatoire."]
+  }
+}
+```
+
+Codes HTTP courants : `200` succès, `201` création, `401` non authentifié, `403` accès interdit, `404` ressource introuvable, `422` validation échouée, `429` limite de requêtes atteinte, `500` erreur serveur.
+
+## Qualité et tests
+
 ```bash
 php artisan test
-# ou
-vendor/bin/phpunit
-```
-Exemple fourni : `tests/Feature/MotoTest.php` (création, doublons, bilan financier).
-
-## 7. Consommer l'API depuis Flutter
-
-Voir `flutter_example/api_service.dart` (service HTTP complet : login, motos, versements, dashboard)
-et `flutter_example/main_example.dart` (écran Flutter minimal affichant la liste des motos).
-
-Ajoutez dans `pubspec.yaml` :
-```yaml
-dependencies:
-  http: ^1.2.0
+vendor/bin/pint --test
+php artisan route:list --path=api
+php artisan scramble:export
 ```
 
-Remplacez `baseUrl` dans `api_service.dart` par l'URL Render de votre API déployée.
+Avant mise en production, vérifiez aussi :
 
-## 8. Principaux endpoints
+- `APP_DEBUG=false` et `APP_ENV=production`.
+- HTTPS obligatoire.
+- Secrets uniquement dans les variables d'environnement du serveur.
+- Sauvegardes de base de données testées.
+- Queue asynchrone et cache partagé adaptés au trafic.
+- Limites de débit et journalisation sans données sensibles.
+- Tests d'autorisation pour chaque rôle et chaque ressource.
 
-| Méthode | Route | Description |
-|---|---|---|
-| POST | /api/auth/login | Connexion |
-| GET | /api/auth/me | Utilisateur connecté |
-| GET/POST | /api/motos | Liste / création moto |
-| PUT/DELETE | /api/motos/{id} | Modification / suppression |
-| POST | /api/motos/{id}/desactiver, /reactiver | Statut moto |
-| GET | /api/motos/{id}/finances | Revenus/dépenses/bénéfices |
-| GET/POST | /api/conducteurs | Liste / création conducteur |
-| POST | /api/conducteurs/{id}/affecter-moto | Affectation + historique |
-| GET/POST | /api/versements | Versements |
-| GET | /api/versements-resume | Résumé dette/retards |
-| GET/POST | /api/absences | Absences + retenues auto |
-| GET/POST | /api/avances | Avances/provisions |
-| POST | /api/avances/{id}/rembourser | Remboursement |
-| GET/POST | /api/reparations | Réparations |
-| GET/POST | /api/depenses | Dépenses |
-| GET | /api/depenses-par-categorie | Répartition dépenses |
-| GET | /api/dashboard | Tableau de bord temps réel |
-| GET | /api/dashboard/graphiques | Données graphiques |
-| GET | /api/rapports/global, /moto/{id}, /export-pdf | Rapports |
+## Structure recommandée
 
-## 9. Notes importantes
+```text
+app/
+  Http/
+    Controllers/Api/     # orchestration HTTP uniquement
+    Requests/            # validation et autorisation des entrées
+    Resources/           # contrats JSON stables
+    Middleware/          # authentification, rôles, sécurité
+  Models/                # relations et casts Eloquent
+  Services/              # règles métier et transactions
+  Actions/               # cas d'utilisation ciblés (si nécessaire)
+  Policies/              # autorisation par ressource
+  Jobs/                  # tâches longues / notifications
+  Events/Listeners/      # événements métier
+  Exceptions/            # exceptions métier
+routes/api.php           # déclaration des endpoints
+tests/Feature/           # tests HTTP et autorisation
+```
 
-- Les packages PDF (`barryvdh/laravel-dompdf`) et Excel (`maatwebsite/excel`) sont déjà déclarés dans `composer.json` ; lancez `composer install` pour les récupérer.
-- Le versement journalier par défaut pour les voitures (100 000 Ar/jour, selon votre cahier des charges) et mensuel pour les motos (600 000 Ar/mois) sont appliqués automatiquement à la création si non précisés, et restent configurables par véhicule.
-- Le champ `search_path`/`sslmode` de `config/database.php` est déjà prêt pour Neon (SSL obligatoire).
-- Pensez à sécuriser `APP_DEBUG=false` et un mot de passe admin fort avant la mise en production.
+Voir `docs/ARCHITECTURE.md` pour les règles de conception et la stratégie de migration progressive.
+
+## Sécurité
+
+Consultez `docs/API-SECURITY.md` avant tout déploiement : l'archive source contenait des secrets qui doivent être renouvelés.
